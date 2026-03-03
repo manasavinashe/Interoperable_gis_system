@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Datasets
+SME/
+*.tif
+*.tiff
+
+# Documents
+*.pdf
+
+# Python server cache (just in case)
+__pycache__/
