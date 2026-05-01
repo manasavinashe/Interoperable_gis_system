@@ -5,9 +5,17 @@
 SME/
 *.tif
 *.tiff
+GlobalWeatherRepository.csv
 
 # Documents
 *.pdf
 
-# Python server cache (just in case)
+# Python
 __pycache__/
+*.pyc
+*.pyo
+.env
+
+# Misc
+*.aux.xml
+*.zip

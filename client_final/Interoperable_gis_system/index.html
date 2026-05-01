@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OGC GIS Client</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/ol@latest/ol.css"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/ol@latest/dist/ol.js"></script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <!-- HEADER -->
+      <header class="app-header">
+        <div class="header-brand">
+          <span class="brand-icon">◈</span>
+          <div>
+            <h1>OGC Web Services Client</h1>
+            <p>WMS · WFS · GeoServer Integration</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="header-status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Ready</span>
+          </div>
+          <button
+            class="theme-toggle"
+            id="themeToggle"
+            title="Toggle light / dark theme"
+          >
+            ☀
+          </button>
+        </div>
+      </header>
+
+      <div class="app-body">
+        <!-- LEFT PANEL -->
+        <aside class="left-panel">
+          <!-- TOP 3/4: Controls -->
+          <div class="panel-controls" id="panelControls">
+            <!-- URL INPUT -->
+            <section class="ctrl-section">
+              <label class="ctrl-label">Service URL</label>
+              <div class="url-input-row">
+                <input
+                  type="text"
+                  id="requestURL"
+                  value="http://localhost:8080/geoserver/gnr629/wms"
+                  placeholder="http://..."
+                />
+              </div>
+              <div class="url-hint" id="urlHint">WMS endpoint detected</div>
+              <div
+                class="url-hint"
+                style="color: var(--text-muted); margin-top: 2px"
+              >
+                💡 For demo layers use:
+                <code
+                  style="
+                    color: var(--accent-amber);
+                    font-family: var(--font-mono);
+                  "
+                  >…/geoserver/wms</code
+                >
+                (global endpoint)
+              </div>
+            </section>
+
+            <!-- QUICK REQUESTS -->
+            <section class="ctrl-section">
+              <label class="ctrl-label">Quick Requests</label>
+              <div class="btn-grid">
+                <button class="btn btn-wms" onclick="wmsGetCapabilities()">
+                  <span class="btn-tag">WMS</span> GetCapabilities
+                </button>
+                <button class="btn btn-wfs" onclick="wfsGetCapabilities()">
+                  <span class="btn-tag">WFS</span> GetCapabilities
+                </button>
+              </div>
+            </section>
+
+            <!-- AVAILABLE LAYERS -->
+            <section class="ctrl-section">
+              <label class="ctrl-label"
+                >Available Layers
+                <span class="layer-count-badge" id="layerCountBadge">0</span>
+              </label>
+              <div id="layerPreview" class="layer-preview">
+                <div class="layer-preview-empty">
+                  Run a GetCapabilities request to load layers
+                </div>
+              </div>
+
+              <div class="btn-grid" style="margin-top: 10px">
+                <button class="btn btn-getmap" onclick="wmsGetMap()">
+                  <span class="btn-tag">WMS</span> GetMap
+                </button>
+                <button class="btn btn-getfeature" onclick="wfsGetFeature()">
+                  <span class="btn-tag">WFS</span> GetFeature
+                </button>
+              </div>
+            </section>
+
+            <!-- PARAMETERS -->
+            <section class="ctrl-section">
+              <label class="ctrl-label">Request Parameters</label>
+
+              <div class="param-row">
+                <div class="param-field">
+                  <label>Layer</label>
+                  <select id="layerSelect" onchange="onLayerSelectChange()">
+                    <option value="">— select layer —</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="param-row two-col">
+                <div class="param-field">
+                  <label
+                    >SRS / CRS
+                    <span style="color: var(--text-muted); font-size: 10px"
+                      >(auto-fills on layer select)</span
+                    ></label
+                  >
+                  <input
+                    type="text"
+                    id="srsInput"
+                    list="srsSuggestions"
+                    value="EPSG:4326"
+                    placeholder="EPSG:4326"
+                    style="font-family: var(--font-mono); font-size: 12px"
+                  />
+                  <datalist id="srsSuggestions">
+                    <option value="EPSG:4326"></option>
+                    <option value="EPSG:3857"></option>
+                  </datalist>
+                </div>
+                <div class="param-field">
+                  <label>Format</label>
+                  <select id="formatSelect" onchange="updateWMSLayerParams()">
+                    <option value="image/png">PNG</option>
+                    <option value="image/jpeg">JPEG</option>
+                    <option value="image/tiff">TIFF</option>
+                    <option value="image/gif">GIF</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="param-row two-col">
+                <div class="param-field">
+                  <label>Width (px)</label>
+                  <input
+                    type="number"
+                    id="widthInput"
+                    value="800"
+                    min="100"
+                    max="4096"
+                  />
+                </div>
+                <div class="param-field">
+                  <label>Height (px)</label>
+                  <input
+                    type="number"
+                    id="heightInput"
+                    value="600"
+                    min="100"
+                    max="4096"
+                  />
+                </div>
+              </div>
+
+              <!-- Max Features (used by both WFS GetFeature and WMS GetFeatureInfo) -->
+              <div class="param-row">
+                <div class="param-field">
+                  <label
+                    >Max Features
+                    <span style="color: var(--text-muted); font-size: 10px"
+                      >— WFS fetch &amp; map click query</span
+                    ></label
+                  >
+                  <input
+                    type="number"
+                    id="maxFeaturesInput"
+                    value="50"
+                    min="1"
+                    max="5000"
+                  />
+                </div>
+              </div>
+
+              <!-- BBOX -->
+              <div class="bbox-section">
+                <div class="bbox-header">
+                  <label>Bounding Box (EPSG:4326)</label>
+                  <button
+                    class="btn-draw-bbox"
+                    onclick="activateBBoxDraw()"
+                    title="Draw rectangle on map"
+                  >
+                    ✏ Draw on Map
+                  </button>
+                </div>
+                <div class="bbox-grid">
+                  <div class="bbox-field">
+                    <span>Min Lon</span>
+                    <input
+                      type="text"
+                      id="minx"
+                      placeholder="-180"
+                      onchange="updateWMSLayerParams()"
+                    />
+                  </div>
+                  <div class="bbox-field">
+                    <span>Min Lat</span>
+                    <input
+                      type="text"
+                      id="miny"
+                      placeholder="-90"
+                      onchange="updateWMSLayerParams()"
+                    />
+                  </div>
+                  <div class="bbox-field">
+                    <span>Max Lon</span>
+                    <input
+                      type="text"
+                      id="maxx"
+                      placeholder="180"
+                      onchange="updateWMSLayerParams()"
+                    />
+                  </div>
+                  <div class="bbox-field">
+                    <span>Max Lat</span>
+                    <input
+                      type="text"
+                      id="maxy"
+                      placeholder="90"
+                      onchange="updateWMSLayerParams()"
+                    />
+                  </div>
+                </div>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 1fr auto;
+                    gap: 6px;
+                    margin-top: 8px;
+                  "
+                >
+                  <button
+                    class="btn btn-getmap"
+                    onclick="applyBBoxToMap()"
+                    title="Fit map to these coordinates"
+                  >
+                    ↗ Apply to Map
+                  </button>
+                  <button
+                    class="btn btn-secondary"
+                    onclick="clearBBox()"
+                    title="Clear BBOX fields"
+                    style="padding: 0 12px"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </section>
+          </div>
+          <!-- /panel-controls -->
+
+          <!-- BOTTOM 1/4: Layer Checklist -->
+          <div class="panel-layers">
+            <div class="panel-layers-header">
+              <span>Added Layers</span>
+              <button class="btn-clear-layers" onclick="clearAllLayers()">
+                ✕ Clear All
+              </button>
+            </div>
+            <div id="layerChecklist" class="layer-checklist">
+              <div class="checklist-empty">No layers added yet</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- RIGHT PANEL -->
+        <main class="right-panel">
+          <!-- MAP -->
+          <div id="mapPane" class="map-area">
+            <div id="map">
+              <div
+                id="feature-popup"
+                class="feature-popup"
+                style="display: none"
+              >
+                <div class="popup-header">
+                  <span>Feature Info</span>
+                  <button onclick="closeFeaturePopup()">✕</button>
+                </div>
+                <div id="feature-popup-content" class="popup-content"></div>
+              </div>
+            </div>
+            <!-- collapse/expand handle on the bottom edge of map -->
+            <div
+              class="pane-collapse-btn"
+              id="mapCollapseBtn"
+              title="Collapse map"
+              onclick="togglePane('map')"
+            >
+              <span>Map ▾</span>
+            </div>
+          </div>
+
+          <!-- drag divider -->
+          <div class="pane-divider" id="paneDivider"></div>
+
+          <!-- RESPONSE PANELS -->
+          <div id="responsePane" class="response-area">
+            <div class="response-pane xml-pane">
+              <div class="pane-header">
+                <span class="pane-title">.............. XML / JSON Response</span>
+                <button class="pane-copy-btn" onclick="copyXML()" title="Copy">
+                  ⧉ Copy
+                </button>
+              </div>
+              <pre
+                id="xmlOutput"
+                class="xml-output"
+              ><!-- Response will appear here --></pre>
+            </div>
+
+            <div class="response-pane parsed-pane">
+              <div class="pane-header">
+                <span class="pane-title">Parsed Data</span>
+                <span
+                  id="parsedInfo"
+                  style="
+                    font-size: 10px;
+                    color: var(--text-muted);
+                    font-family: var(--font-mono);
+                  "
+                ></span>
+              </div>
+              <div class="table-scroll">
+                <table id="parsedTable" class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Property</th>
+                      <th>Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colspan="2" class="table-empty">
+                        Parsed data will appear here
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <!-- collapse/expand handle on top edge of response pane -->
+            <div
+              class="pane-collapse-btn pane-collapse-top"
+              id="responseCollapseBtn"
+              title="Collapse response"
+              onclick="togglePane('response')"
+            >
+              <span>Response ▴</span>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast" class="toast"></div>
+
+    <script src="js/config.js"></script>
+    <script src="js/xmlParser.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/ogcRequests.js"></script>
+
+    <script>
+      // Resizable / collapsible right-panel panes
+      (function () {
+        const rightPanel = document.querySelector(".right-panel");
+        const mapPane = document.getElementById("mapPane");
+        const responsePane = document.getElementById("responsePane");
+        const divider = document.getElementById("paneDivider");
+        const mapBtn = document.getElementById("mapCollapseBtn");
+        const respBtn = document.getElementById("responseCollapseBtn");
+
+        // state
+        let mapCollapsed = false;
+        let respCollapsed = false;
+
+        // minimum heights when both panes are visible (px)
+        const MIN_MAP = 80;
+        const MIN_RESP = 60;
+
+        // --- drag-to-resize ---
+        let dragging = false;
+        let startY, startMapH;
+
+        divider.addEventListener("mousedown", (e) => {
+          if (mapCollapsed || respCollapsed) return;
+          dragging = true;
+          startY = e.clientY;
+          startMapH = mapPane.getBoundingClientRect().height;
+          document.body.style.cursor = "row-resize";
+          document.body.style.userSelect = "none";
+          e.preventDefault();
+        });
+
+        document.addEventListener("mousemove", (e) => {
+          if (!dragging) return;
+          const totalH = rightPanel.getBoundingClientRect().height;
+          const divH = divider.getBoundingClientRect().height;
+          const delta = e.clientY - startY;
+          let newMapH = startMapH + delta;
+
+          // clamping so neither pane disappears
+          newMapH = Math.max(
+            MIN_MAP,
+            Math.min(newMapH, totalH - divH - MIN_RESP),
+          );
+
+          const respH = totalH - divH - newMapH;
+          mapPane.style.flex = "none";
+          mapPane.style.height = newMapH + "px";
+          responsePane.style.flex = "none";
+          responsePane.style.height = respH + "px";
+
+          // leting OpenLayers know map size changed
+          map.updateSize();
+        });
+
+        document.addEventListener("mouseup", () => {
+          if (!dragging) return;
+          dragging = false;
+          document.body.style.cursor = "";
+          document.body.style.userSelect = "";
+        });
+
+        // --- collapse / expand ---
+        window.togglePane = function (which) {
+          if (which === "map") {
+            mapCollapsed = !mapCollapsed;
+            if (mapCollapsed) {
+              mapPane.style.flex = "none";
+              mapPane.style.height = "32px"; // just showing the label bar
+              responsePane.style.flex = "1";
+              responsePane.style.height = "";
+              mapBtn.querySelector("span").textContent = "Map ▴";
+              mapBtn.title = "Expand map";
+            } else {
+              mapPane.style.flex = "3";
+              mapPane.style.height = "";
+              responsePane.style.flex = "1";
+              responsePane.style.height = "";
+              mapBtn.querySelector("span").textContent = "Map ▾";
+              mapBtn.title = "Collapse map";
+              setTimeout(() => map.updateSize(), 10);
+            }
+            respCollapsed = false;
+            respBtn.querySelector("span").textContent = "Response ▴";
+          } else {
+            respCollapsed = !respCollapsed;
+            if (respCollapsed) {
+              responsePane.style.flex = "none";
+              responsePane.style.height = "26px"; // just showing the label bar
+              mapPane.style.flex = "1";
+              mapPane.style.height = "";
+              respBtn.querySelector("span").textContent = "Response ▴";
+              respBtn.title = "Expand response";
+            } else {
+              responsePane.style.flex = "1";
+              responsePane.style.height = "";
+              mapPane.style.flex = "3";
+              mapPane.style.height = "";
+              respBtn.querySelector("span").textContent = "Response ▾";
+              respBtn.title = "Collapse response";
+            }
+            mapCollapsed = false;
+            mapBtn.querySelector("span").textContent = "Map ▾";
+            setTimeout(() => map.updateSize(), 10);
+          }
+        };
+      })();
+      (function () {
+        const btn = document.getElementById("themeToggle");
+        const root = document.documentElement;
+
+        function applyTheme(dark) {
+          if (dark) {
+            root.setAttribute("data-theme", "dark");
+            btn.textContent = "☽";
+            btn.title = "Switch to light theme";
+          } else {
+            root.removeAttribute("data-theme");
+            btn.textContent = "☀";
+            btn.title = "Switch to dark theme";
+          }
+        }
+
+        // check for saved preference; default to light
+        const saved = localStorage.getItem("gis-theme");
+        applyTheme(saved === "dark");
+
+        btn.addEventListener("click", () => {
+          const isDark = root.getAttribute("data-theme") === "dark";
+          localStorage.setItem("gis-theme", isDark ? "light" : "dark");
+          applyTheme(!isDark);
+        });
+      })();
+    </script>
+  </body>
+</html>
