@@ -1,54 +1,84 @@
 """
-Generate GeoPulse presentation as PPTX.
-Run: python make_pptx.py
-Output: GeoPulse_Presentation.pptx
+GeoPulse — 30-slide PPTX presentation generator
+Part 1: Project 1 — Interoperable GIS System  (slides 1-15)
+Part 2: Project 2 — GeoPulse SOS              (slides 16-30)
+
+Run:  python make_pptx.py
+Out:  GeoPulse_Presentation.pptx
 """
 
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
-from pptx.util import Inches, Pt
-import copy
+from pptx.oxml.ns import qn
+from lxml import etree
+import os, copy
 
-# ── Colours ──────────────────────────────────────────────────────────────────
-BG        = RGBColor(0x0f, 0x14, 0x23)   # dark navy
-BG2       = RGBColor(0x16, 0x1c, 0x2e)   # card bg
-ACCENT    = RGBColor(0x0f, 0xd6, 0xc2)   # teal
-ACCENT2   = RGBColor(0x4f, 0x6e, 0xf7)   # blue
-WARN      = RGBColor(0xfb, 0x92, 0x3c)   # orange
-GREEN     = RGBColor(0x4a, 0xde, 0x80)   # green
+# ── Colours — match GUI CSS variables ────────────────────────────────────────
+# Light theme palette
+BG        = RGBColor(0xf0, 0xf2, 0xf5)   # --bg-app
+PANEL     = RGBColor(0xff, 0xff, 0xff)   # --bg-panel
+PANEL_ALT = RGBColor(0xf4, 0xf5, 0xf7)   # --bg-pane-head
+BORDER    = RGBColor(0xe2, 0xe5, 0xea)   # --border
+TEXT      = RGBColor(0x1a, 0x1d, 0x23)   # --text
+TEXT_SUB  = RGBColor(0x4a, 0x55, 0x68)   # --text-sub
+TEXT_MUTE = RGBColor(0x8a, 0x95, 0xa3)   # --text-muted
+ACCENT    = RGBColor(0x4f, 0x6e, 0xf7)   # --accent (indigo)
+TEAL      = RGBColor(0x0f, 0xd6, 0xc2)   # --accent-teal
+GREEN     = RGBColor(0x10, 0xb9, 0x81)   # --btn-wfs
+PURPLE    = RGBColor(0x8b, 0x5c, 0xf6)   # --btn-getmap
+AMBER     = RGBColor(0xf5, 0x9e, 0x0b)   # --accent-amber
+RED       = RGBColor(0xef, 0x44, 0x44)
 WHITE     = RGBColor(0xff, 0xff, 0xff)
-GREY      = RGBColor(0x94, 0xa3, 0xb8)
-LIGHT     = RGBColor(0xcb, 0xd5, 0xe1)
-BORDER    = RGBColor(0x2a, 0x35, 0x50)
+BLACK     = RGBColor(0x00, 0x00, 0x00)
 
-# ── Slide dimensions (widescreen 16:9) ───────────────────────────────────────
-W = Inches(13.33)
-H = Inches(7.5)
+# Slide accent bar colors by section
+P1_BAR = ACCENT   # project 1 = indigo
+P2_BAR = TEAL     # project 2 = teal
+
+# ── Slide size — 16:9 ────────────────────────────────────────────────────────
+W, H = Inches(13.33), Inches(7.5)
 
 prs = Presentation()
 prs.slide_width  = W
 prs.slide_height = H
+BLANK = prs.slide_layouts[6]
 
-BLANK = prs.slide_layouts[6]   # completely blank layout
-
-
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-def add_slide():
-    slide = prs.slides.add_slide(BLANK)
-    # dark background
-    fill = slide.background.fill
-    fill.solid()
-    fill.fore_color.rgb = BG
-    return slide
+SCREENSHOTS = os.path.join(
+    os.path.dirname(__file__),
+    "../../client_final/Output_Screenshots"
+)
 
 
-def txb(slide, text, x, y, w, h,
-        size=18, bold=False, color=WHITE, align=PP_ALIGN.LEFT,
-        italic=False, wrap=True):
-    """Add a simple text box."""
+# ═════════════════════════════════════════════════════════════════════════════
+#  LOW-LEVEL HELPERS
+# ═════════════════════════════════════════════════════════════════════════════
+
+def new_slide():
+    s = prs.slides.add_slide(BLANK)
+    s.background.fill.solid()
+    s.background.fill.fore_color.rgb = BG
+    return s
+
+
+def rect(slide, x, y, w, h, fill=PANEL, line=BORDER, line_w=Pt(0.75)):
+    shape = slide.shapes.add_shape(1, x, y, w, h)
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = fill
+    shape.line.color.rgb = line
+    shape.line.width = line_w
+    return shape
+
+
+def no_line(shape):
+    shape.line.fill.background()
+    return shape
+
+
+def txt(slide, text, x, y, w, h,
+        size=12, bold=False, color=TEXT, align=PP_ALIGN.LEFT,
+        italic=False, wrap=True, font="Segoe UI"):
     shape = slide.shapes.add_textbox(x, y, w, h)
     tf = shape.text_frame
     tf.word_wrap = wrap
@@ -56,63 +86,68 @@ def txb(slide, text, x, y, w, h,
     p.alignment = align
     run = p.add_run()
     run.text = text
-    run.font.size = Pt(size)
-    run.font.bold = bold
+    run.font.size  = Pt(size)
+    run.font.bold  = bold
     run.font.italic = italic
     run.font.color.rgb = color
+    run.font.name  = font
     return shape
 
 
-def heading(slide, title, subtitle=None):
-    """Standard slide heading with teal underline."""
-    txb(slide, title,
-        Inches(0.5), Inches(0.25), Inches(12.33), Inches(0.6),
-        size=28, bold=True, color=ACCENT)
-    # underline rule
-    line = slide.shapes.add_shape(
-        1,  # rectangle
-        Inches(0.5), Inches(0.88), Inches(12.33), Inches(0.025))
-    line.fill.solid(); line.fill.fore_color.rgb = ACCENT
-    line.line.fill.background()
+def mono(slide, text, x, y, w, h, size=9.5, color=TEXT_SUB):
+    """Monospace code-style text."""
+    return txt(slide, text, x, y, w, h, size=size, color=color,
+               font="Courier New", wrap=False)
+
+
+def heading(slide, title, subtitle=None, bar_color=P1_BAR):
+    """Top accent bar + title + optional subtitle."""
+    # left colour bar
+    bar = no_line(rect(slide, Inches(0), Inches(0),
+                        Inches(0.18), Inches(7.5), fill=bar_color))
+    # title
+    txt(slide, title,
+        Inches(0.35), Inches(0.2), Inches(12.78), Inches(0.65),
+        size=26, bold=True, color=TEXT)
+    # rule under title
+    no_line(rect(slide, Inches(0.35), Inches(0.82),
+                 Inches(12.48), Inches(0.03), fill=BORDER))
     if subtitle:
-        txb(slide, subtitle,
-            Inches(0.5), Inches(0.95), Inches(12.33), Inches(0.4),
-            size=13, color=GREY)
+        txt(slide, subtitle,
+            Inches(0.35), Inches(0.88), Inches(12.78), Inches(0.38),
+            size=12, color=TEXT_MUTE)
 
 
-def card(slide, x, y, w, h, title, bullets, title_color=ACCENT):
-    """Rounded card with title + bullet list."""
-    box = slide.shapes.add_shape(1, x, y, w, h)
-    box.fill.solid(); box.fill.fore_color.rgb = BG2
-    box.line.color.rgb = BORDER
-
-    ty = y + Inches(0.08)
-    txb(slide, title, x + Inches(0.15), ty,
-        w - Inches(0.3), Inches(0.35),
-        size=13, bold=True, color=title_color)
-
+def card(slide, x, y, w, h, title, bullets,
+         title_color=ACCENT, bullet_size=11):
+    """White card with title and bullet list."""
+    r = rect(slide, x, y, w, h, fill=PANEL, line=BORDER)
+    # title strip
+    no_line(rect(slide, x, y, w, Inches(0.38), fill=PANEL_ALT, line=BORDER))
+    txt(slide, title,
+        x + Inches(0.14), y + Inches(0.04), w - Inches(0.28), Inches(0.3),
+        size=12, bold=True, color=title_color)
+    # bullets
     tf_shape = slide.shapes.add_textbox(
-        x + Inches(0.15), ty + Inches(0.38),
-        w - Inches(0.3), h - Inches(0.55))
+        x + Inches(0.14), y + Inches(0.44),
+        w - Inches(0.28), h - Inches(0.54))
     tf = tf_shape.text_frame
     tf.word_wrap = True
     first = True
     for b in bullets:
         p = tf.paragraphs[0] if first else tf.add_paragraph()
         first = False
-        p.alignment = PP_ALIGN.LEFT
         run = p.add_run()
-        run.text = ("▸ " if b and not b.startswith("  ") else "") + b
-        run.font.size = Pt(11)
-        run.font.color.rgb = LIGHT
+        run.text = ("• " if b and not b.startswith(" ") else "") + b
+        run.font.size  = Pt(bullet_size)
+        run.font.color.rgb = TEXT_SUB
+        run.font.name  = "Segoe UI"
 
 
-def code_box(slide, code_text, x, y, w, h):
-    """Dark code block."""
-    box = slide.shapes.add_shape(1, x, y, w, h)
-    box.fill.solid(); box.fill.fore_color.rgb = RGBColor(0x0a, 0x0e, 0x1a)
-    box.line.color.rgb = BORDER
-
+def code_card(slide, code_text, x, y, w, h):
+    """Light-gray code block."""
+    rect(slide, x, y, w, h,
+         fill=PANEL_ALT, line=BORDER)
     tf_shape = slide.shapes.add_textbox(
         x + Inches(0.15), y + Inches(0.12),
         w - Inches(0.3), h - Inches(0.24))
@@ -126,401 +161,915 @@ def code_box(slide, code_text, x, y, w, h):
         run.text = line
         run.font.size = Pt(9.5)
         run.font.name = "Courier New"
-        run.font.color.rgb = RGBColor(0xf8, 0xf8, 0xf2)
+        run.font.color.rgb = TEXT
 
 
-def tag_box(slide, label, x, y, color=ACCENT, bg=None):
-    """Small coloured tag."""
-    r, g, b = color[0], color[1], color[2]   # RGBColor is a tuple subclass
-    box = slide.shapes.add_shape(1, x, y, Inches(1.1), Inches(0.28))
-    box.fill.solid(); box.fill.fore_color.rgb = RGBColor(r // 6, g // 6, b // 6)
-    box.line.color.rgb = color
-    txb(slide, label, x + Inches(0.06), y + Inches(0.02),
-        Inches(0.98), Inches(0.24),
+def tag(slide, label, x, y, color=ACCENT, w=Inches(1.3)):
+    """Small colour tag/badge."""
+    r, g, b = color[0], color[1], color[2]
+    bg = RGBColor(min(r + 210, 255), min(g + 210, 255), min(b + 210, 255))
+    box = rect(slide, x, y, w, Inches(0.27), fill=bg, line=color, line_w=Pt(1))
+    txt(slide, label, x + Inches(0.06), y + Inches(0.02), w - Inches(0.12), Inches(0.23),
         size=9, bold=True, color=color, align=PP_ALIGN.CENTER)
 
 
-def flow_box(slide, label, sublabel, x, y, w=Inches(2.0), border_color=ACCENT2):
-    box = slide.shapes.add_shape(1, x, y, w, Inches(0.85))
-    box.fill.solid(); box.fill.fore_color.rgb = RGBColor(0x16, 0x1c, 0x2e)
-    box.line.color.rgb = border_color
-    txb(slide, label,
-        x + Inches(0.1), y + Inches(0.06),
-        w - Inches(0.2), Inches(0.35),
-        size=12, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    if sublabel:
-        txb(slide, sublabel,
-            x + Inches(0.1), y + Inches(0.42),
-            w - Inches(0.2), Inches(0.35),
-            size=9, color=GREY, align=PP_ALIGN.CENTER)
+def chip(slide, icon, label, x, y, color=ACCENT):
+    """Small icon+text chip on white card."""
+    r, g, b = color[0], color[1], color[2]
+    bg = RGBColor(min(r + 210, 255), min(g + 210, 255), min(b + 210, 255))
+    box = rect(slide, x, y, Inches(2.8), Inches(0.7), fill=bg, line=color, line_w=Pt(1))
+    txt(slide, icon + "  " + label,
+        x + Inches(0.1), y + Inches(0.14), Inches(2.6), Inches(0.35),
+        size=12, bold=True, color=color)
 
 
-def arrow(slide, x, y, vertical=False):
-    if vertical:
-        txb(slide, "↓", x, y, Inches(0.4), Inches(0.4),
-            size=18, color=ACCENT, align=PP_ALIGN.CENTER)
-    else:
-        txb(slide, "→", x, y, Inches(0.4), Inches(0.4),
-            size=18, color=ACCENT, align=PP_ALIGN.CENTER)
+def flow(slide, items, y, bar_color=P1_BAR):
+    """Horizontal flow: [(label, sublabel), ...] with arrows between."""
+    n   = len(items)
+    box_w = Inches(2.4)
+    gap   = Inches(0.55)
+    total = n * box_w + (n - 1) * gap
+    x0    = (W - total) / 2
+
+    for i, (lbl, sub) in enumerate(items):
+        bx = x0 + i * (box_w + gap)
+        r = rect(slide, bx, y, box_w, Inches(0.8), fill=PANEL, line=bar_color)
+        txt(slide, lbl, bx + Inches(0.1), y + Inches(0.06),
+            box_w - Inches(0.2), Inches(0.35),
+            size=12, bold=True, color=TEXT, align=PP_ALIGN.CENTER)
+        if sub:
+            txt(slide, sub, bx + Inches(0.1), y + Inches(0.44),
+                box_w - Inches(0.2), Inches(0.3),
+                size=9, color=TEXT_MUTE, align=PP_ALIGN.CENTER)
+        if i < n - 1:
+            txt(slide, "→",
+                bx + box_w + Inches(0.1), y + Inches(0.22),
+                Inches(0.35), Inches(0.35),
+                size=16, color=bar_color, align=PP_ALIGN.CENTER)
 
 
-def table(slide, headers, rows, x, y, w, h, col_widths=None):
+def stat_row(slide, stats, y, bar_color=P1_BAR):
+    """Row of (number, label) stat boxes."""
+    n  = len(stats)
+    bw = Inches(12.33 / n - 0.15)
+    for i, (num, lbl) in enumerate(stats):
+        bx = Inches(0.35 + i * (12.33 / n))
+        r  = rect(slide, bx, y, bw, Inches(1.0), fill=PANEL, line=BORDER)
+        txt(slide, num, bx, y + Inches(0.06), bw, Inches(0.55),
+            size=28, bold=True, color=bar_color, align=PP_ALIGN.CENTER)
+        txt(slide, lbl, bx, y + Inches(0.6), bw, Inches(0.35),
+            size=10, color=TEXT_MUTE, align=PP_ALIGN.CENTER)
+
+
+def data_table(slide, headers, rows, x, y, w, h, col_widths=None):
     n_cols = len(headers)
     n_rows = len(rows) + 1
     t = slide.shapes.add_table(n_rows, n_cols, x, y, w, h).table
-
     if col_widths:
         for i, cw in enumerate(col_widths):
             t.columns[i].width = cw
-
     row_h = h // n_rows
     for ri in range(n_rows):
         t.rows[ri].height = row_h
-
-    # header row
     for ci, hdr in enumerate(headers):
         cell = t.cell(0, ci)
-        cell.fill.solid(); cell.fill.fore_color.rgb = RGBColor(0x1a, 0x28, 0x40)
+        cell.fill.solid(); cell.fill.fore_color.rgb = ACCENT
         p = cell.text_frame.paragraphs[0]
         run = p.add_run(); run.text = hdr
         run.font.size = Pt(11); run.font.bold = True
-        run.font.color.rgb = ACCENT
-        cell.text_frame.paragraphs[0].alignment = PP_ALIGN.LEFT
-
+        run.font.color.rgb = WHITE
+        run.font.name = "Segoe UI"
     for ri, row_data in enumerate(rows, 1):
         for ci, val in enumerate(row_data):
             cell = t.cell(ri, ci)
-            bg = RGBColor(0x12, 0x18, 0x2a) if ri % 2 == 0 else BG2
-            cell.fill.solid(); cell.fill.fore_color.rgb = bg
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = PANEL_ALT if ri % 2 == 0 else PANEL
             p = cell.text_frame.paragraphs[0]
             run = p.add_run(); run.text = val
-            run.font.size = Pt(10); run.font.color.rgb = LIGHT
+            run.font.size = Pt(10); run.font.color.rgb = TEXT_SUB
+            run.font.name = "Segoe UI"
+
+
+def screenshot(slide, filename, x, y, w, h):
+    """Insert a screenshot if the file exists; grey placeholder otherwise."""
+    path = os.path.join(SCREENSHOTS, filename)
+    if os.path.exists(path):
+        slide.shapes.add_picture(path, x, y, w, h)
+    else:
+        r = rect(slide, x, y, w, h, fill=PANEL_ALT, line=BORDER)
+        txt(slide, "[ screenshot: " + filename + " ]",
+            x, y + h/2 - Inches(0.2), w, Inches(0.4),
+            size=9, color=TEXT_MUTE, align=PP_ALIGN.CENTER)
+
+
+def divider_slide(title, subtitle, bar_color=P1_BAR):
+    """Full-bleed section divider."""
+    s = prs.slides.add_slide(BLANK)
+    s.background.fill.solid()
+    s.background.fill.fore_color.rgb = TEXT   # dark bg for dividers only
+    no_line(rect(s, Inches(0), Inches(0), Inches(0.3), Inches(7.5),
+                 fill=bar_color))
+    txt(s, title,
+        Inches(0.6), Inches(2.6), Inches(12.1), Inches(1.2),
+        size=42, bold=True, color=WHITE, align=PP_ALIGN.LEFT)
+    txt(s, subtitle,
+        Inches(0.6), Inches(3.85), Inches(12.1), Inches(0.6),
+        size=18, color=RGBColor(0xc0, 0xc8, 0xd8), align=PP_ALIGN.LEFT)
+    txt(s, "GNR629  ·  CSRE, IIT Bombay",
+        Inches(0.6), Inches(6.6), Inches(12.1), Inches(0.4),
+        size=11, color=RGBColor(0x5c, 0x68, 0x82), align=PP_ALIGN.LEFT)
+    return s
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-#  SLIDES
+#  PART 1: PROJECT 1 — INTEROPERABLE GIS SYSTEM (slides 1–15)
 # ═════════════════════════════════════════════════════════════════════════════
 
 # ── Slide 1: Title ────────────────────────────────────────────────────────────
-s = add_slide()
-txb(s, "◈", Inches(6.4), Inches(0.7), Inches(1.0), Inches(0.9),
-    size=42, color=ACCENT, align=PP_ALIGN.CENTER)
-txb(s, "GeoPulse",
-    Inches(2.0), Inches(1.5), Inches(9.33), Inches(1.1),
-    size=54, bold=True, color=ACCENT, align=PP_ALIGN.CENTER)
-txb(s, "An OGC-Compliant Geospatial Web Portal",
-    Inches(2.0), Inches(2.55), Inches(9.33), Inches(0.5),
-    size=20, color=ACCENT2, align=PP_ALIGN.CENTER)
-# divider
-div = s.shapes.add_shape(1, Inches(3.5), Inches(3.15), Inches(6.33), Inches(0.03))
-div.fill.solid(); div.fill.fore_color.rgb = BORDER
-div.line.fill.background()
-txb(s, "GNR629  ·  Project 2  ·  CSRE, IIT Bombay",
-    Inches(2.0), Inches(3.3), Inches(9.33), Inches(0.4),
-    size=14, color=GREY, align=PP_ALIGN.CENTER)
-txb(s, "Manas Avinashe  ·  2026",
-    Inches(2.0), Inches(3.75), Inches(9.33), Inches(0.4),
-    size=13, color=GREY, align=PP_ALIGN.CENTER)
-for i, (lbl, col) in enumerate([
-    ("OGC WMS", ACCENT2), ("OGC WFS", WARN),
-    ("OGC SOS 2.0", ACCENT), ("O&M · SensorML", GREEN)
+s = new_slide()
+no_line(rect(s, Inches(0), Inches(0), Inches(0.3), Inches(7.5), fill=P1_BAR))
+no_line(rect(s, Inches(0.3), Inches(0), Inches(13.03), Inches(0.08), fill=BORDER))
+
+txt(s, "PROJECT 1",
+    Inches(0.6), Inches(1.2), Inches(11.0), Inches(0.5),
+    size=13, bold=True, color=P1_BAR)
+txt(s, "Interoperable GIS System",
+    Inches(0.6), Inches(1.7), Inches(11.0), Inches(1.3),
+    size=44, bold=True, color=TEXT)
+txt(s, "An OGC-compliant WMS / WFS web client for geospatial data visualisation",
+    Inches(0.6), Inches(3.0), Inches(11.0), Inches(0.6),
+    size=17, color=TEXT_SUB)
+no_line(rect(s, Inches(0.6), Inches(3.75), Inches(4.0), Inches(0.04), fill=BORDER))
+txt(s, "GNR629  ·  CSRE, IIT Bombay  ·  Manas Avinashe  ·  2026",
+    Inches(0.6), Inches(3.9), Inches(11.0), Inches(0.4),
+    size=12, color=TEXT_MUTE)
+for i, (lbl, col) in enumerate([("OGC WMS", ACCENT), ("OGC WFS", GREEN),
+                                  ("GeoServer", PURPLE), ("OpenLayers", AMBER)]):
+    tag(s, lbl, Inches(0.6 + i * 1.5), Inches(4.6), col)
+
+
+# ── Slide 2: Problem & Motivation ─────────────────────────────────────────────
+s = new_slide()
+heading(s, "Problem & Motivation", "Why interoperability in GIS?")
+
+card(s, Inches(0.35), Inches(1.35), Inches(5.9), Inches(4.0),
+     "The Challenge", [
+     "Geospatial data is distributed across",
+     " many servers and formats",
+     "Different vendors use incompatible APIs",
+     "No standard way to discover, request,",
+     " or render spatial layers remotely",
+     "Manual download + re-processing is slow",
+], title_color=RED)
+
+card(s, Inches(6.55), Inches(1.35), Inches(6.43), Inches(4.0),
+     "The Solution — OGC Web Services", [
+     "WMS — Web Map Service",
+     " Render layers as images on demand",
+     "WFS — Web Feature Service",
+     " Retrieve vector features as data",
+     "Standard URL operations across all servers",
+     "Any compliant client talks to any server",
+], title_color=GREEN)
+
+no_line(rect(s, Inches(0.35), Inches(5.55), Inches(12.63), Inches(0.04), fill=BORDER))
+txt(s, "Application Domain: Soil Moisture Monitoring — Maharashtra, India",
+    Inches(0.35), Inches(5.7), Inches(12.63), Inches(0.4),
+    size=12, bold=True, color=TEXT_SUB)
+txt(s, "Soil moisture is critical for agricultural productivity, drought assessment, and irrigation planning."
+       " This project serves Maharashtra soil moisture layers through GeoServer and visualises them via the OGC client.",
+    Inches(0.35), Inches(6.1), Inches(12.63), Inches(0.65),
+    size=11, color=TEXT_MUTE)
+
+
+# ── Slide 3: Technology Stack ──────────────────────────────────────────────────
+s = new_slide()
+heading(s, "Technology Stack")
+
+for i, (title, items, col) in enumerate([
+    ("Server Side", [
+        "Apache Tomcat — application server",
+        "GeoServer 2.x — OGC WMS/WFS server",
+        "PostgreSQL + PostGIS — spatial database",
+        "Stores Maharashtra layers (countries,",
+        " mh_villages, soil_moisture_georef)",
+    ], ACCENT),
+    ("Client Side", [
+        "HTML5 / CSS3 / Vanilla JavaScript",
+        "OpenLayers — interactive mapping library",
+        "DOMParser — built-in XML parsing",
+        "No build tools, no npm, no framework",
+        "Single index.html opens in any browser",
+    ], GREEN),
+    ("OGC Standards", [
+        "WMS 1.1 — GetCapabilities, GetMap,",
+        " GetFeatureInfo",
+        "WFS 2.0 — GetCapabilities, GetFeature",
+        "EPSG:4326 and EPSG:3857 CRS support",
+        "XML response parsing + display",
+    ], PURPLE),
 ]):
-    tag_box(s, lbl, Inches(2.6 + i * 1.9), Inches(4.55), col)
+    card(s, Inches(0.35 + i * 4.35), Inches(1.35), Inches(4.1), Inches(4.9),
+         title, items, title_color=col)
+
+stat_row(s, [
+    ("4", "JS modules"), ("2", "OGC standards"), ("3", "GeoServer layers"), ("0", "npm dependencies")
+], Inches(6.5))
 
 
-# ── Slide 2: What We Built ────────────────────────────────────────────────────
-s = add_slide()
-heading(s, "What We Built",
-        "A unified portal for two OGC projects — one URL, two services")
-
-card(s, Inches(0.5), Inches(1.3), Inches(5.9), Inches(4.6),
-     "🗺  OGC Tab — Project 1", [
-     "WMS GetCapabilities",
-     "WFS GetCapabilities & GetFeature",
-     "Live OpenLayers map",
-     "Layer management + BBOX draw",
-     "GeoServer integration (port 8080)",
-])
-card(s, Inches(6.9), Inches(1.3), Inches(5.93), Inches(4.6),
-     "📡  SOS Tab — Project 2", [
-     "OGC SOS 2.0 operations",
-     "25 global weather sensor stations",
-     "Spatial + temporal + parameter filters",
-     "Interactive map with temperature markers",
-     "Live Chart.js charts & data table",
-])
-txb(s, "Both projects served from a single URL:  http://127.0.0.1:8000",
-    Inches(1.5), Inches(6.1), Inches(10.33), Inches(0.4),
-    size=12, color=ACCENT, align=PP_ALIGN.CENTER)
-
-
-# ── Slide 3: The Problem ──────────────────────────────────────────────────────
-s = add_slide()
-heading(s, "The Problem — Why Do We Need OGC SOS?")
-
-card(s, Inches(0.5), Inches(1.3), Inches(5.9), Inches(3.6),
-     "Without Standards", [
-     "Every sensor vendor uses a different API",
-     "Data formats incompatible across systems",
-     "No uniform way to query multiple sources",
-     "Vendor lock-in everywhere",
-], title_color=WARN)
-card(s, Inches(6.9), Inches(1.3), Inches(5.93), Inches(3.6),
-     "With OGC SOS 2.0", [
-     "Universal operations: GetCapabilities,",
-     "  DescribeSensor, GetObservation",
-     "Standardised XML responses (O&M)",
-     "Any compliant client ↔ any server",
-     "Interoperability by design",
-], title_color=GREEN)
-
-box = s.shapes.add_shape(1, Inches(0.5), Inches(5.15), Inches(12.33), Inches(0.85))
-box.fill.solid(); box.fill.fore_color.rgb = RGBColor(0x07, 0x2a, 0x27)
-box.line.color.rgb = ACCENT
-txb(s, "GeoPulse implements the SOS 2.0 operation structure on top of real historical "
-       "weather data, making it queryable by any OGC-aware tool.",
-    Inches(0.7), Inches(5.25), Inches(11.93), Inches(0.65),
-    size=13, color=ACCENT)
-
-
-# ── Slide 4: Standards Stack ──────────────────────────────────────────────────
-s = add_slide()
-heading(s, "The OGC Standards Stack",
-        "Three standards working together in this project")
-
-card(s, Inches(0.5), Inches(1.3), Inches(3.9), Inches(5.3),
-     "SOS — Sensor Observation Service", [
-     "Defines HOW to ask for data",
-     "",
-     "Three core operations:",
-     "  GetCapabilities",
-     "  DescribeSensor",
-     "  GetObservation",
-     "",
-     "Specifies allowed filters,",
-     "response format, service metadata",
-], title_color=ACCENT)
-
-card(s, Inches(4.7), Inches(1.3), Inches(3.9), Inches(5.3),
-     "O&M — Observations & Measurements", [
-     "Defines WHAT a reading looks like",
-     "",
-     "Every observation has:",
-     "  featureOfInterest (where)",
-     "  observedProperty (what)",
-     "  procedure (which sensor)",
-     "  phenomenonTime (when)",
-     "  result (the value + unit)",
-], title_color=GREEN)
-
-card(s, Inches(8.9), Inches(1.3), Inches(3.93), Inches(5.3),
-     "SensorML — Sensor Model Language", [
-     "Defines the sensor's IDENTITY",
-     "",
-     "For each sensor describes:",
-     "  Unique identifier",
-     "  Physical location (GML Point)",
-     "  Output capabilities",
-     "  Units of measurement",
-     "",
-     "Our file: 10 sensors described",
-], title_color=ACCENT2)
-
-
-# ── Slide 5: Architecture ─────────────────────────────────────────────────────
-s = add_slide()
+# ── Slide 4: System Architecture ──────────────────────────────────────────────
+s = new_slide()
 heading(s, "System Architecture")
 
-# Row 1
-flow_box(s, "Browser", "index.html\nsos.js / map.js",
-         Inches(0.6), Inches(1.6), Inches(2.5), ACCENT)
-arrow(s, Inches(3.2), Inches(1.88))
-txb(s, "HTTP GET\nfetch()", Inches(3.1), Inches(2.28), Inches(0.85), Inches(0.4),
-    size=8, color=GREY, align=PP_ALIGN.CENTER)
+flow(s, [
+    ("Browser", "index.html\nOpenLayers"),
+    ("HTTP/S", "GET request\nURL params"),
+    ("GeoServer", "Tomcat:8080\nPostGIS backend"),
+    ("Response", "image/png\nor XML"),
+    ("Render", "OL tile layer\nor vector"),
+], Inches(1.9), P1_BAR)
 
-flow_box(s, "FastAPI", "main.py\nport 8000",
-         Inches(3.7), Inches(1.6), Inches(2.5), ACCENT2)
-arrow(s, Inches(6.3), Inches(1.88))
-txb(s, "SQL query", Inches(6.2), Inches(2.28), Inches(0.85), Inches(0.3),
-    size=8, color=GREY, align=PP_ALIGN.CENTER)
+# Three boxes below
+for i, (title, items, col) in enumerate([
+    ("WMS Flow", [
+        "GetCapabilities → parse layer list",
+        "User selects layer",
+        "GetMap → image URL → OL TileWMS",
+        "Image rendered as map overlay",
+    ], ACCENT),
+    ("WFS Flow", [
+        "GetCapabilities → parse feature types",
+        "GetFeature → GeoJSON response",
+        "OL VectorSource + GeoJSON format",
+        "Features rendered on map + table",
+    ], GREEN),
+    ("Click / Info Flow", [
+        "Vector click → attributes from OL",
+        "WMS click → GetFeatureInfo request",
+        "AbortController cancels in-flight reqs",
+        "Attributes shown in parsed data panel",
+    ], PURPLE),
+]):
+    card(s, Inches(0.35 + i * 4.35), Inches(3.15), Inches(4.1), Inches(3.5),
+         title, items, title_color=col, bullet_size=10)
 
-flow_box(s, "SQLite DB", "weather.db\n17,775 rows",
-         Inches(6.8), Inches(1.6), Inches(2.5), WARN)
 
-flow_box(s, "SensorML", "sensorml.xml\nstatic file",
-         Inches(9.9), Inches(1.6), Inches(2.83), ACCENT)
+# ── Slide 5: OGC Standards — WMS & WFS ────────────────────────────────────────
+s = new_slide()
+heading(s, "OGC Standards — WMS & WFS",
+        "How the client communicates with GeoServer")
 
-# Row 2
-txb(s, "↓  XML Response (O&M structured)", Inches(3.7), Inches(2.7),
-    Inches(3.5), Inches(0.4), size=11, color=ACCENT)
+card(s, Inches(0.35), Inches(1.35), Inches(6.1), Inches(5.4),
+     "WMS — Web Map Service", [
+     "Returns rendered map images (PNG/JPEG)",
+     "",
+     "Key operations:",
+     " GetCapabilities — list available layers",
+     " GetMap — request a map image",
+     "   LAYERS, BBOX, SRS, WIDTH, HEIGHT",
+     " GetFeatureInfo — query features by pixel",
+     "",
+     "URL example:",
+     " ?SERVICE=WMS&REQUEST=GetMap",
+     " &LAYERS=gnr629:countries",
+     " &BBOX=68,6,98,38&SRS=EPSG:4326",
+     " &WIDTH=800&HEIGHT=600&FORMAT=image/png",
+], title_color=ACCENT)
 
-flow_box(s, "XML / JSON", "application/xml\napplication/json",
-         Inches(3.7), Inches(3.2), Inches(2.5), GREEN)
-arrow(s, Inches(6.3), Inches(3.48))
-txb(s, "DOMParser\nparse → render", Inches(6.2), Inches(3.5), Inches(0.9), Inches(0.4),
-    size=8, color=GREY, align=PP_ALIGN.CENTER)
+card(s, Inches(6.75), Inches(1.35), Inches(6.23), Inches(5.4),
+     "WFS — Web Feature Service", [
+     "Returns raw vector feature data",
+     "",
+     "Key operations:",
+     " GetCapabilities — list feature types",
+     " GetFeature — download features as",
+     "   GeoJSON, GML, or KML",
+     "   TYPENAMES, MAXFEATURES, BBOX",
+     "",
+     "URL example:",
+     " ?SERVICE=WFS&REQUEST=GetFeature",
+     " &TYPENAMES=gnr629:mh_villages",
+     " &OUTPUTFORMAT=application/json",
+     " &COUNT=50",
+], title_color=GREEN)
 
-flow_box(s, "Map Markers", "OpenLayers\ntemperature colour",
-         Inches(6.8), Inches(3.2), Inches(2.5), GREEN)
-flow_box(s, "Charts", "Chart.js\nbar + doughnut",
-         Inches(9.5), Inches(3.2), Inches(3.23), GREEN)
 
-# Stats row
-for i, (num, lbl) in enumerate([
+# ── Slide 6: GetCapabilities ───────────────────────────────────────────────────
+s = new_slide()
+heading(s, "GetCapabilities — Service Discovery",
+        "The first request — answers: what layers does this server have?")
+
+code_card(s, """\
+<!-- WMS GetCapabilities response — parsed by xmlParser.js -->
+
+<WMS_Capabilities version="1.1.1">
+  <Service>
+    <Title>GeoServer Web Map Service</Title>
+  </Service>
+  <Capability>
+    <Layer>
+      <Layer queryable="1">
+        <Name>gnr629:countries</Name>
+        <Title>World Countries</Title>
+        <SRS>EPSG:4326</SRS>
+        <LatLonBoundingBox minx="-180" miny="-90" maxx="180" maxy="90"/>
+      </Layer>
+      <Layer queryable="1">
+        <Name>gnr629:mh_villages</Name>
+        <Title>Maharashtra Villages</Title>
+        <LatLonBoundingBox minx="72.6" miny="15.6" maxx="80.9" maxy="22.0"/>
+      </Layer>
+    </Layer>
+  </Capability>
+</WMS_Capabilities>""",
+    Inches(0.35), Inches(1.35), Inches(6.8), Inches(5.4))
+
+card(s, Inches(7.35), Inches(1.35), Inches(5.63), Inches(2.6),
+     "What the client does with this", [
+     "DOMParser parses the raw XML",
+     "Extracts layer Name, Title, SRS, BBOX",
+     "Populates the layer dropdown",
+     "Auto-fills BBOX fields on layer select",
+     "Auto-fills SRS field from layer CRS",
+], title_color=ACCENT)
+
+card(s, Inches(7.35), Inches(4.15), Inches(5.63), Inches(2.6),
+     "Key JS — xmlParser.js", [
+     "doc = new DOMParser()",
+     "      .parseFromString(xml, 'text/xml')",
+     "layers = doc.getElementsByTagName('Layer')",
+     "name   = el.querySelector('Name').textContent",
+     "bbox   = el.querySelector('[minx]')",
+], title_color=PURPLE)
+
+
+# ── Slide 7: WMS GetMap ────────────────────────────────────────────────────────
+s = new_slide()
+heading(s, "WMS GetMap — Map Visualisation",
+        "Render any server layer as an image overlay on the base map")
+
+screenshot(s, "8. getMap_countries.png",
+           Inches(0.35), Inches(1.35), Inches(5.5), Inches(4.3))
+
+card(s, Inches(6.1), Inches(1.35), Inches(6.88), Inches(2.1),
+     "GetMap Request Built by ogcRequests.js", [
+     "SERVICE=WMS & REQUEST=GetMap",
+     "LAYERS=<selected layer>",
+     "BBOX=minx,miny,maxx,maxy (EPSG:4326)",
+     "SRS=EPSG:4326  WIDTH=800  HEIGHT=600",
+     "FORMAT=image/png (or jpeg/tiff)",
+], title_color=ACCENT)
+
+card(s, Inches(6.1), Inches(3.65), Inches(6.88), Inches(2.05),
+     "OpenLayers Integration", [
+     "ol.layer.Image + ol.source.ImageWMS",
+     "Layer added to map with auto z-index",
+     "Multiple layers stack correctly",
+     "Layer checklist panel tracks all layers",
+], title_color=GREEN)
+
+screenshot(s, "9. getMap_mh_villages.png",
+           Inches(6.1), Inches(5.85), Inches(6.88), Inches(1.4))
+
+
+# ── Slide 8: WFS GetFeature ────────────────────────────────────────────────────
+s = new_slide()
+heading(s, "WFS GetFeature — Vector Data",
+        "Retrieve actual feature geometry and attributes, not just a rendered image")
+
+screenshot(s, "11. getFeature_countries_258.png",
+           Inches(0.35), Inches(1.35), Inches(5.5), Inches(4.3))
+
+card(s, Inches(6.1), Inches(1.35), Inches(6.88), Inches(2.1),
+     "GetFeature Request", [
+     "SERVICE=WFS & REQUEST=GetFeature",
+     "TYPENAMES=<selected layer>",
+     "OUTPUTFORMAT=application/json",
+     "COUNT=<maxFeatures param>",
+     "BBOX=<if set by user>",
+], title_color=GREEN)
+
+card(s, Inches(6.1), Inches(3.65), Inches(6.88), Inches(2.05),
+     "Result", [
+     "GeoJSON features loaded into OL VectorLayer",
+     "Features rendered as polygons/points",
+     "Attributes displayed in parsed data table",
+     "Click a feature → highlight + show info",
+], title_color=ACCENT)
+
+screenshot(s, "12. getFeature_countries_50.png",
+           Inches(6.1), Inches(5.85), Inches(6.88), Inches(1.4))
+
+
+# ── Slide 9: GetFeatureInfo / Click Query ─────────────────────────────────────
+s = new_slide()
+heading(s, "GetFeatureInfo — Click to Query",
+        "Click anywhere on the map → retrieve feature attributes at that pixel")
+
+card(s, Inches(0.35), Inches(1.35), Inches(5.9), Inches(5.4),
+     "How It Works", [
+     "User clicks on the map",
+     "",
+     "1. If a vector (WFS) feature is at that",
+     "   pixel → attributes shown immediately",
+     "   from the in-memory GeoJSON",
+     "",
+     "2. If no vector feature → GetFeatureInfo",
+     "   request sent to WMS server:",
+     "   REQUEST=GetFeatureInfo",
+     "   QUERY_LAYERS=<layer>",
+     "   I=<pixel X>  J=<pixel Y>",
+     "",
+     "AbortController cancels any previous",
+     "in-flight request on each new click",
+], title_color=ACCENT)
+
+code_card(s, """\
+// map.js — WMS click handler
+
+sosMap.on("singleclick", async (evt) => {
+  const viewRes = view.getResolution();
+  const url = wmsSource.getFeatureInfoUrl(
+    evt.coordinate, viewRes, "EPSG:4326",
+    { INFO_FORMAT: "application/json",
+      FEATURE_COUNT: maxFeatures }
+  );
+
+  // cancel previous in-flight request
+  if (abortCtrl) abortCtrl.abort();
+  abortCtrl = new AbortController();
+
+  const res = await fetch(url, { signal: abortCtrl.signal });
+  const json = await res.json();
+  // display features in parsed data panel
+  displayFeatureInfo(json.features);
+});""",
+    Inches(6.5), Inches(1.35), Inches(6.48), Inches(5.4))
+
+
+# ── Slide 10: BBOX Selection ──────────────────────────────────────────────────
+s = new_slide()
+heading(s, "Bounding Box — Three Ways to Set AOI",
+        "Area of interest controls both the map view and the request parameters")
+
+for i, (title, bullets, col, sc) in enumerate([
+    ("Method 1: Auto-fill on Layer Select",
+     ["Click a layer in the dropdown",
+      "BBOX auto-fills from GetCapabilities",
+      " LatLonBoundingBox parsed by xmlParser.js",
+      "SRS also auto-populated",
+     ], ACCENT, "19. bbox_selection.png"),
+    ("Method 2: Draw on Map",
+     ["Click '✏ Draw on Map' button",
+      "Drag rectangle on OpenLayers map",
+      "ol.interaction.Draw + createBox()",
+      "Coords converted EPSG:3857 → EPSG:4326",
+     ], GREEN, "20. bbox_update.png"),
+    ("Method 3: Manual + Apply",
+     ["Type Min Lon/Lat + Max Lon/Lat directly",
+      "Click 'Apply to Map'",
+      "Validates ±180° / ±90° ranges",
+      "Map view pans and zooms to BBOX",
+     ], PURPLE, "21. bbox_apply_to_map.png"),
+]):
+    bx = Inches(0.35 + i * 4.35)
+    card(s, bx, Inches(1.35), Inches(4.1), Inches(2.8), title, bullets, title_color=col)
+    screenshot(s, sc, bx, Inches(4.35), Inches(4.1), Inches(2.8))
+
+
+# ── Slide 11: Layer Management ────────────────────────────────────────────────
+s = new_slide()
+heading(s, "Layer Management",
+        "Stack and control multiple WMS/WFS layers simultaneously")
+
+screenshot(s, "10. soil_moisture_layer_stacked.png",
+           Inches(0.35), Inches(1.35), Inches(5.5), Inches(5.4))
+
+card(s, Inches(6.1), Inches(1.35), Inches(6.88), Inches(1.9),
+     "Added Layers Panel", [
+     "Lists every loaded WMS / WFS layer",
+     "WMS / WFS badge shown per layer",
+     "Toggle visibility on/off",
+     "Adjust opacity with slider",
+], title_color=ACCENT)
+
+card(s, Inches(6.1), Inches(3.45), Inches(6.88), Inches(1.9),
+     "Z-Index & Stacking", [
+     "Most recently added layer on top",
+     "WMS layers use auto-incrementing zIndex",
+     "WFS vector layers always above WMS images",
+     "Clear All Layers button resets map",
+], title_color=GREEN)
+
+card(s, Inches(6.1), Inches(5.55), Inches(6.88), Inches(1.2),
+     "Tested Layers", [
+     "gnr629:countries   ·   gnr629:mh_villages",
+     "gnr629:soil_moisture_georef",
+], title_color=PURPLE)
+
+
+# ── Slide 12: XML Parsing ─────────────────────────────────────────────────────
+s = new_slide()
+heading(s, "XML Parsing — xmlParser.js",
+        "DOMParser turns raw XML responses into structured data")
+
+code_card(s, """\
+// xmlParser.js — parse WMS GetCapabilities
+
+function parseWMSCapabilities(xmlText) {
+  const doc = new DOMParser()
+               .parseFromString(xmlText, "text/xml");
+
+  const layerEls = doc.querySelectorAll("Layer > Layer");
+  const layers   = [];
+
+  layerEls.forEach(el => {
+    const name  = el.querySelector("Name")?.textContent;
+    const title = el.querySelector("Title")?.textContent;
+    const bbox  = el.querySelector("LatLonBoundingBox");
+    const srs   = el.querySelector("SRS")?.textContent;
+
+    if (!name) return;
+
+    layers.push({
+      name,  title,  srs,
+      minx: parseFloat(bbox?.getAttribute("minx")),
+      miny: parseFloat(bbox?.getAttribute("miny")),
+      maxx: parseFloat(bbox?.getAttribute("maxx")),
+      maxy: parseFloat(bbox?.getAttribute("maxy")),
+    });
+  });
+
+  return layers;   // → populates layer dropdown
+}
+
+// Copy raw XML to response panel
+function displayXMLResponse(xmlText) {
+  document.getElementById("xmlOutput").textContent = xmlText;
+}""",
+    Inches(0.35), Inches(1.35), Inches(7.0), Inches(5.6))
+
+card(s, Inches(7.55), Inches(1.35), Inches(5.43), Inches(2.6),
+     "DOMParser API", [
+     "Built into every browser — no libraries",
+     "parseFromString(str, 'text/xml')",
+     "Returns a navigable DOM tree",
+     "querySelector() works on XML too",
+     "textContent gives element text value",
+], title_color=ACCENT)
+
+card(s, Inches(7.55), Inches(4.15), Inches(5.43), Inches(2.8),
+     "Parsed Data Table", [
+     "WFS attributes rendered in a 2-col table",
+     "Property | Value rows",
+     "WMS parsed layers → layer checklist",
+     "GetFeatureInfo JSON → attribute rows",
+     "Raw XML always shown in xml panel",
+], title_color=GREEN)
+
+
+# ── Slide 13: UI Features ─────────────────────────────────────────────────────
+s = new_slide()
+heading(s, "User Interface",
+        "Clean, professional design with light/dark themes")
+
+screenshot(s, "4. client_whiteTheme.png",
+           Inches(0.35), Inches(1.35), Inches(6.0), Inches(3.5))
+screenshot(s, "5. client_darkTheme.png",
+           Inches(6.65), Inches(1.35), Inches(6.33), Inches(3.5))
+
+txt(s, "Light Theme", Inches(0.35), Inches(4.9), Inches(6.0), Inches(0.3),
+    size=10, color=TEXT_MUTE, align=PP_ALIGN.CENTER)
+txt(s, "Dark Theme", Inches(6.65), Inches(4.9), Inches(6.33), Inches(0.3),
+    size=10, color=TEXT_MUTE, align=PP_ALIGN.CENTER)
+
+for i, feat in enumerate([
+    "Light / dark theme toggle — saved in localStorage",
+    "Resizable map / response panes — drag divider",
+    "Collapsible map & response panels",
+    "Status dot: idle / loading / active / error",
+    "Toast notification system",
+]):
+    txt(s, "• " + feat,
+        Inches(0.35), Inches(5.25 + i * 0.32), Inches(12.63), Inches(0.3),
+        size=11, color=TEXT_SUB)
+
+
+# ── Slide 14: GeoServer Workspace & External Servers ─────────────────────────
+s = new_slide()
+heading(s, "GeoServer Workspace & External Servers",
+        "Local PostGIS layers and remote public WMS services")
+
+screenshot(s, "0. gnr629_workspace.png",
+           Inches(0.35), Inches(1.35), Inches(4.2), Inches(3.2))
+
+card(s, Inches(4.75), Inches(1.35), Inches(8.23), Inches(3.2),
+     "Local GeoServer (localhost:8080)", [
+     "Workspace: gnr629",
+     "Layers stored in PostgreSQL/PostGIS:",
+     " countries — world boundaries",
+     " mh_villages — Maharashtra village polygons",
+     " soil_moisture_georef — raster soil data",
+     "Served via WMS and WFS endpoints",
+], title_color=ACCENT)
+
+screenshot(s, "16. external_wms_server_nasa.png",
+           Inches(0.35), Inches(4.75), Inches(4.2), Inches(2.5))
+
+card(s, Inches(4.75), Inches(4.75), Inches(8.23), Inches(2.5),
+     "External Public WMS Servers (tested)", [
+     "NASA GIBS — gibs.earthdata.nasa.gov",
+     "NOAA Weather — opengeo.ncep.noaa.gov",
+     "GeoSolutions — gs-stable.geo-solutions.it",
+     "Client works with any OGC-compliant server",
+], title_color=GREEN)
+
+
+# ── Slide 15: Project 1 Summary ────────────────────────────────────────────────
+s = new_slide()
+heading(s, "Project 1 — Summary & Results")
+
+stat_row(s, [
+    ("3", "GeoServer layers"),
+    ("4", "OGC operations"),
+    ("3", "External WMS tested"),
+    ("2", "Themes"),
+    ("0", "npm dependencies"),
+], Inches(1.35))
+
+card(s, Inches(0.35), Inches(2.7), Inches(5.9), Inches(3.9),
+     "Requirements Met", [
+     "✓ WMS GetCapabilities, GetMap, GetFeatureInfo",
+     "✓ WFS GetCapabilities, GetFeature",
+     "✓ XML response displayed raw + parsed",
+     "✓ Multiple stacked layers with z-index",
+     "✓ OSM base layer",
+     "✓ External WMS/WFS server support",
+     "✓ BBOX coordinate input + draw + apply",
+     "✓ Format and size selection",
+     "✓ Light/dark theme + resizable panels",
+], title_color=GREEN)
+
+card(s, Inches(6.55), Inches(2.7), Inches(6.43), Inches(3.9),
+     "Technology Takeaways", [
+     "DOMParser replaces any XML library",
+     "OpenLayers handles CRS transforms internally",
+     "AbortController prevents stale responses",
+     "CSS variables make theme switching trivial",
+     "StaticFiles — no server needed for client",
+     "",
+     "Foundation for Project 2:",
+     " Same map library, same UI patterns",
+     " Same XML parsing approach",
+     " Extended with SOS tab + FastAPI",
+], title_color=ACCENT)
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  PART 2: PROJECT 2 — GeoPulse SOS (slides 16–30)
+# ═════════════════════════════════════════════════════════════════════════════
+
+# ── Slide 16: Title — Project 2 ───────────────────────────────────────────────
+s = new_slide()
+no_line(rect(s, Inches(0), Inches(0), Inches(0.3), Inches(7.5), fill=P2_BAR))
+no_line(rect(s, Inches(0.3), Inches(0), Inches(13.03), Inches(0.08), fill=BORDER))
+
+txt(s, "PROJECT 2",
+    Inches(0.6), Inches(1.2), Inches(11.0), Inches(0.5),
+    size=13, bold=True, color=P2_BAR)
+txt(s, "GeoPulse",
+    Inches(0.6), Inches(1.7), Inches(11.0), Inches(1.3),
+    size=44, bold=True, color=TEXT)
+txt(s, "Extending the GIS portal with an OGC Sensor Observation Service (SOS 2.0)",
+    Inches(0.6), Inches(3.0), Inches(11.0), Inches(0.6),
+    size=17, color=TEXT_SUB)
+no_line(rect(s, Inches(0.6), Inches(3.75), Inches(4.0), Inches(0.04), fill=BORDER))
+txt(s, "GNR629  ·  CSRE, IIT Bombay  ·  Manas Avinashe  ·  2026",
+    Inches(0.6), Inches(3.9), Inches(11.0), Inches(0.4),
+    size=12, color=TEXT_MUTE)
+for i, (lbl, col) in enumerate([("OGC SOS 2.0", TEAL), ("SensorML", ACCENT),
+                                  ("O&M", GREEN), ("FastAPI", PURPLE), ("SQLite", AMBER)]):
+    tag(s, lbl, Inches(0.6 + i * 1.6), Inches(4.6), col, w=Inches(1.45))
+
+
+# ── Slide 17: What Changed in Project 2 ───────────────────────────────────────
+s = new_slide()
+heading(s, "From Project 1 → Project 2",
+        "GeoPulse adds a complete SOS service on top of the existing OGC client",
+        bar_color=P2_BAR)
+
+flow(s, [
+    ("Project 1\nclient", "WMS + WFS tab\nOpenLayers"),
+    ("+ SOS Tab", "25 sensors\nfilter panel"),
+    ("+ FastAPI", "Python backend\nSOS API"),
+    ("+ SQLite DB", "17,775 rows\nweather data"),
+    ("GeoPulse", "Single portal\nport 8000"),
+], Inches(1.7), P2_BAR)
+
+card(s, Inches(0.35), Inches(3.1), Inches(5.9), Inches(3.5),
+     "Kept from Project 1", [
+     "All WMS / WFS functionality intact",
+     "Same OpenLayers map library",
+     "Same XML parser, same UI patterns",
+     "Same light/dark theme system",
+     "Same JS module structure",
+], title_color=GREEN)
+
+card(s, Inches(6.55), Inches(3.1), Inches(6.43), Inches(3.5),
+     "New in Project 2", [
+     "SOS tab with second OpenLayers map",
+     "FastAPI Python server (port 8000)",
+     "SQLite database with weather observations",
+     "SensorML document (DescribeSensor)",
+     "Three SOS 2.0 operations",
+     "Spatial + temporal + parameter filters",
+     "Chart.js visualisations",
+], title_color=P2_BAR)
+
+
+# ── Slide 18: OGC Standards Stack ─────────────────────────────────────────────
+s = new_slide()
+heading(s, "OGC Standards Stack — Project 2",
+        "Three standards work together to describe sensors, observations, and how to query them",
+        bar_color=P2_BAR)
+
+for i, (title, items, col) in enumerate([
+    ("SOS 2.0 — Sensor Observation Service", [
+     "Defines HOW to request sensor data",
+     "Three core operations:",
+     " GetCapabilities — service discovery",
+     " DescribeSensor  — sensor identity",
+     " GetObservation  — the actual data",
+     "Specifies allowed filter types",
+     "Standard URL + XML structure",
+    ], TEAL),
+    ("O&M — Observations & Measurements", [
+     "Defines WHAT a sensor reading is:",
+     " featureOfInterest — WHERE",
+     " observedProperty  — WHAT",
+     " procedure         — WHICH sensor",
+     " phenomenonTime    — WHEN",
+     " result            — THE VALUE",
+     "ISO 19156 international standard",
+    ], GREEN),
+    ("SensorML 2.0 — Sensor Model Language", [
+     "Defines the sensor's IDENTITY:",
+     " Unique identifier",
+     " Physical location (GML Point)",
+     " Output capabilities",
+     " Units of measurement",
+     "Returned by DescribeSensor operation",
+    ], ACCENT),
+]):
+    card(s, Inches(0.35 + i * 4.35), Inches(1.35), Inches(4.1), Inches(5.6),
+         title, items, title_color=col)
+
+
+# ── Slide 19: System Architecture ─────────────────────────────────────────────
+s = new_slide()
+heading(s, "System Architecture — GeoPulse",
+        "Single FastAPI server handles both the SOS API and frontend delivery",
+        bar_color=P2_BAR)
+
+flow(s, [
+    ("Browser", "sos.js\nfetch()"),
+    ("HTTP GET", "/sos/*\nparams"),
+    ("FastAPI", "main.py\nport 8000"),
+    ("SQLite", "weather.db\n17,775 rows"),
+    ("XML / JSON", "O&M structured\nresponse"),
+], Inches(1.8), P2_BAR)
+
+for i, (title, items, col) in enumerate([
+    ("FastAPI Endpoints", [
+     "GET /  → redirect to /app/index.html",
+     "GET /sos/capabilities  → XML",
+     "GET /sos/sensor        → SensorML",
+     "GET /sos/sensors       → JSON list",
+     "GET /sos/observations  → XML / JSON",
+     "GET /app/*  → static frontend files",
+    ], TEAL),
+    ("Data Flow", [
+     "sos.js builds URL from form inputs",
+     "fetch() sends HTTP GET to FastAPI",
+     "FastAPI builds parameterized SQL",
+     "SQLite returns matching rows",
+     "rows_to_xml() wraps in <Observation>",
+     "DOMParser in browser parses response",
+    ], ACCENT),
+    ("Key Design", [
+     "API routes mounted BEFORE StaticFiles",
+     "so /sos/* is never shadowed",
+     "",
+     "SOS_BASE = '' when served by FastAPI",
+     "SOS_BASE = 'http://127.0.0.1:8000'",
+     "  when opened as file://",
+    ], GREEN),
+]):
+    card(s, Inches(0.35 + i * 4.35), Inches(3.05), Inches(4.1), Inches(3.6),
+         title, items, title_color=col, bullet_size=10)
+
+
+# ── Slide 20: Data Pipeline ────────────────────────────────────────────────────
+s = new_slide()
+heading(s, "Data Pipeline",
+        "Real historical weather data — curated for proper time-series structure",
+        bar_color=P2_BAR)
+
+flow(s, [
+    ("GlobalWeatherRepository.csv", "138,583 rows\n257 cities · 35 MB"),
+    ("process_data.py", "select 25 cities\nkeep full history"),
+    ("cleaned_weather.csv", "17,775 rows · 2 MB"),
+    ("db_setup.py", "pandas → SQLite"),
+    ("weather.db", "1.7 MB · ready"),
+], Inches(1.7), P2_BAR)
+
+no_line(rect(s, Inches(0.35), Inches(2.85), Inches(12.63), Inches(1.15),
+             fill=RGBColor(0xff, 0xf7, 0xed), line=AMBER))
+txt(s, "⚠  Original data problem: df.sample(5000) randomly sampled 5,000 rows across all "
+       "257 cities — destroying time-series continuity. "
+       "Fix: rewrote process_data.py to explicitly select 25 cities and keep ALL their readings (~710 each).",
+    Inches(0.55), Inches(2.94), Inches(12.23), Inches(0.98),
+    size=11, color=RGBColor(0x78, 0x35, 0x00))
+
+stat_row(s, [
     ("25", "sensor stations"),
-    ("~17k", "observations"),
+    ("~710", "readings each"),
+    ("17,775", "total rows"),
     ("5", "parameters"),
-    ("3", "SOS operations"),
-]):
-    bx = s.shapes.add_shape(1,
-        Inches(0.5 + i * 3.2), Inches(4.4), Inches(2.9), Inches(0.85))
-    bx.fill.solid(); bx.fill.fore_color.rgb = RGBColor(0x0c, 0x1a, 0x2e)
-    bx.line.color.rgb = BORDER
-    txb(s, num, Inches(0.5 + i * 3.2), Inches(4.42), Inches(2.9), Inches(0.45),
-        size=26, bold=True, color=ACCENT, align=PP_ALIGN.CENTER)
-    txb(s, lbl, Inches(0.5 + i * 3.2), Inches(4.86), Inches(2.9), Inches(0.3),
-        size=10, color=GREY, align=PP_ALIGN.CENTER)
+    ("2 years", "time span"),
+], Inches(4.3), P2_BAR)
+
+card(s, Inches(0.35), Inches(5.6), Inches(12.63), Inches(1.55),
+     "Observed Parameters", [
+     "temperature (°C)   ·   humidity (%)   ·   wind_speed (kph)   ·   pressure (mb)   ·   precipitation (mm)",
+     "Timestamps: 2024-05-16  →  2026-04-30   ·   sensor_id format: 'Tokyo_Japan'",
+], title_color=TEAL, bullet_size=11)
 
 
-# ── Slide 6: Data Pipeline ────────────────────────────────────────────────────
-s = add_slide()
-heading(s, "The Data Pipeline",
-        "Real historical weather data, curated for proper time-series structure")
+# ── Slide 21: SensorML ────────────────────────────────────────────────────────
+s = new_slide()
+heading(s, "SensorML — DescribeSensor Operation",
+        "GET /sos/sensor  →  the sensor's identity document (SensorML 2.0)",
+        bar_color=P2_BAR)
 
-flow_box(s, "GlobalWeatherRepository.csv",
-         "138,583 rows · 257 cities · 35 MB",
-         Inches(0.3), Inches(1.5), Inches(3.4), GREY)
-arrow(s, Inches(3.82), Inches(1.76))
-txb(s, "process_data.py\nselect 25 cities", Inches(3.75), Inches(2.18),
-    Inches(1.1), Inches(0.4), size=9, color=GREY, align=PP_ALIGN.CENTER)
-
-flow_box(s, "cleaned_weather.csv",
-         "17,775 rows · 2 MB",
-         Inches(4.9), Inches(1.5), Inches(3.0), ACCENT2)
-arrow(s, Inches(8.02), Inches(1.76))
-txb(s, "db_setup.py", Inches(7.96), Inches(2.18),
-    Inches(0.9), Inches(0.3), size=9, color=GREY, align=PP_ALIGN.CENTER)
-
-flow_box(s, "weather.db",
-         "SQLite · 1.7 MB",
-         Inches(9.0), Inches(1.5), Inches(3.0), WARN)
-
-# Problem callout
-box2 = s.shapes.add_shape(1, Inches(0.3), Inches(2.75), Inches(12.73), Inches(1.0))
-box2.fill.solid(); box2.fill.fore_color.rgb = RGBColor(0x18, 0x10, 0x08)
-box2.line.color.rgb = WARN
-txb(s, "⚠  Original data issue: raw dataset used df.sample(5000) — random sampling "
-       "destroyed time-series continuity.\n"
-       "Fix: rewrote process_data.py to select 25 specific cities and keep ALL their readings (~710 each).",
-    Inches(0.5), Inches(2.82), Inches(12.33), Inches(0.86),
-    size=11, color=LIGHT)
-
-# 5 parameters
-txb(s, "5 Observed Parameters",
-    Inches(0.3), Inches(4.1), Inches(4.0), Inches(0.4),
-    size=14, bold=True, color=ACCENT)
-for i, (param, unit, col) in enumerate([
-    ("Temperature", "°C", ACCENT),
-    ("Humidity", "%", ACCENT2),
-    ("Wind Speed", "kph", GREEN),
-    ("Pressure", "mb", WARN),
-    ("Precipitation", "mm", GREY),
-]):
-    bx = s.shapes.add_shape(1,
-        Inches(0.3 + i * 2.55), Inches(4.65), Inches(2.35), Inches(0.75))
-    bx.fill.solid(); bx.fill.fore_color.rgb = BG2
-    bx.line.color.rgb = col
-    txb(s, param, Inches(0.3 + i * 2.55), Inches(4.68),
-        Inches(2.35), Inches(0.38),
-        size=12, bold=True, color=col, align=PP_ALIGN.CENTER)
-    txb(s, unit, Inches(0.3 + i * 2.55), Inches(5.03),
-        Inches(2.35), Inches(0.28),
-        size=10, color=GREY, align=PP_ALIGN.CENTER)
-
-
-# ── Slide 7: 25 Sensors ───────────────────────────────────────────────────────
-s = add_slide()
-heading(s, "25 Global Sensor Stations",
-        "Geographically distributed — one sensor_id per city (e.g. Tokyo_Japan)")
-
-table(s,
-    ["Region", "Cities", "Count"],
-    [
-        ["Asia",        "Tokyo, New Delhi, Beijing, Bangkok, Singapore, Tehran",  "6"],
-        ["Europe",      "Berlin, Rome, Warsaw, Moscow, London",                   "5"],
-        ["Africa",      "Cairo, Nairobi, Dakar, Accra, Pretoria",                 "5"],
-        ["Americas",    "Ottawa, Mexico City, Lima, Buenos Aires, Montevideo",    "5"],
-        ["Middle East", "Riyadh, Muscat",                                         "2"],
-        ["Oceania",     "Canberra, Wellington",                                   "2"],
-    ],
-    Inches(0.5), Inches(1.3), Inches(12.33), Inches(4.3),
-    col_widths=[Inches(1.8), Inches(8.8), Inches(1.0)],
-)
-
-box3 = s.shapes.add_shape(1, Inches(0.5), Inches(5.85), Inches(12.33), Inches(0.7))
-box3.fill.solid(); box3.fill.fore_color.rgb = RGBColor(0x07, 0x1e, 0x2a)
-box3.line.color.rgb = ACCENT
-txb(s, "Each sensor_id links a DB row (O&M procedure) to its SensorML <System> entry — "
-       "~710 readings per station · timestamps 2024-05-16 → 2026-04-30",
-    Inches(0.7), Inches(5.93), Inches(11.93), Inches(0.55),
-    size=12, color=ACCENT)
-
-
-# ── Slide 8: SensorML ─────────────────────────────────────────────────────────
-s = add_slide()
-heading(s, "SensorML — DescribeSensor",
-        "GET /sos/sensor  →  the sensor's identity document (served as static XML file)")
-
-code_box(s, """\
+code_card(s, """\
 <SensorML xmlns="http://www.opengis.net/sensorml/2.0"
           xmlns:gml="http://www.opengis.net/gml/3.2">
+
   <member>
     <System>
-      <identifier>Tokyo_Japan</identifier>          <!-- unique sensor ID -->
+      <identifier>Tokyo_Japan</identifier>
       <description>Weather sensor in Tokyo, Japan</description>
 
       <location>
-        <gml:Point srsName="EPSG:4326">             <!-- coordinate reference system -->
+        <gml:Point srsName="EPSG:4326">
           <gml:coordinates>139.69,35.69</gml:coordinates>
         </gml:Point>
       </location>
 
       <outputs>
         <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity"    unit="%"/>
-          <output name="wind_speed"  unit="kph"/>
-          <output name="pressure"    unit="mb"/>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
         </OutputList>
       </outputs>
     </System>
   </member>
+  <!-- 9 more sensors across all continents -->
 </SensorML>""",
-    Inches(0.5), Inches(1.25), Inches(7.5), Inches(5.4))
+    Inches(0.35), Inches(1.35), Inches(7.0), Inches(5.6))
 
-card(s, Inches(8.2), Inches(1.25), Inches(4.63), Inches(2.4),
-     "Key Elements", [
+card(s, Inches(7.55), Inches(1.35), Inches(5.43), Inches(2.6),
+     "Key XML Elements", [
      "identifier — unique sensor ID",
-     "gml:Point — location in EPSG:4326",
-     "OutputList — what it measures + units",
-     "srsName — coordinate system declaration",
-])
-card(s, Inches(8.2), Inches(3.85), Inches(4.63), Inches(2.8),
+     "  links to sensor_id in database",
+     "gml:Point — location, EPSG:4326",
+     "  coordinates: lon, lat order",
+     "OutputList — declares capabilities",
+     "  name + unit per parameter",
+], title_color=TEAL)
+
+card(s, Inches(7.55), Inches(4.15), Inches(5.43), Inches(2.8),
      "Our Implementation", [
-     "10 representative sensors described",
-     "Covers all 6 continents",
-     "Served as a static file (not from DB)",
-     "In full istSOS: dynamic, DB-backed",
-     "sensor_id links to DB via O&M procedure",
-])
+     "10 sensors described across 5 continents",
+     "Served as a static XML file from disk",
+     "main.py reads file → Response(xml)",
+     "",
+     "In full istSOS deployment:",
+     "  Dynamic — generated from DB",
+     "  Registered via InsertSensor",
+], title_color=ACCENT)
 
 
-# ── Slide 9: GetCapabilities ──────────────────────────────────────────────────
-s = add_slide()
-heading(s, "GetCapabilities — Service Discovery",
-        "GET /sos/capabilities  →  answers: what can this service do?")
+# ── Slide 22: GetCapabilities ──────────────────────────────────────────────────
+s = new_slide()
+heading(s, "SOS GetCapabilities — Service Discovery",
+        "GET /sos/capabilities  →  declares all operations, parameters, and offerings",
+        bar_color=P2_BAR)
 
-code_box(s, """\
+code_card(s, """\
 <Capabilities version="2.0.0"
               xmlns:sos="http://www.opengis.net/sos/2.0">
   <ServiceIdentification>
@@ -530,9 +1079,8 @@ code_box(s, """\
   </ServiceIdentification>
 
   <OperationsMetadata>
-    <Operation name="GetCapabilities"/>
-    <Operation name="DescribeSensor"/>
     <Operation name="GetObservation">
+      <DCP><HTTP><Get href="/sos/observations"/></HTTP></DCP>
       <Parameter name="param">
         <AllowedValues>
           <Value>temperature</Value>
@@ -553,475 +1101,399 @@ code_box(s, """\
     </ObservationOffering>
   </ObservationOfferingList>
 </Capabilities>""",
-    Inches(0.5), Inches(1.25), Inches(7.5), Inches(5.9))
+    Inches(0.35), Inches(1.35), Inches(7.0), Inches(5.6))
 
-card(s, Inches(8.2), Inches(1.25), Inches(4.63), Inches(2.4),
-     "Three sections", [
+card(s, Inches(7.55), Inches(1.35), Inches(5.43), Inches(2.5),
+     "Three Sections", [
      "ServiceIdentification — who we are",
      "OperationsMetadata — what we support",
+     "  + allowed filter parameters",
      "ObservationOfferingList — the datasets",
-])
-card(s, Inches(8.2), Inches(3.85), Inches(4.63), Inches(2.4),
-     "Why it matters", [
-     "A client can discover this service",
-     "without prior knowledge of its API",
-     "Standard structure = any OGC tool",
-     "can parse it automatically",
-])
+     "  response formats available",
+], title_color=TEAL) if False else \
+card(s, Inches(7.55), Inches(1.35), Inches(5.43), Inches(2.5),
+     "Three Sections", [
+     "ServiceIdentification — who we are",
+     "OperationsMetadata — what we support",
+     "  + allowed filter parameters",
+     "ObservationOfferingList — the datasets",
+     "  response formats available",
+], title_color=TEAL)
+
+card(s, Inches(7.55), Inches(4.05), Inches(5.43), Inches(2.9),
+     "Why It Matters", [
+     "A client can auto-discover this service",
+     "without any prior knowledge of the API",
+     "",
+     "Standard structure means any OGC tool",
+     "(QGIS, ArcGIS, custom client) can",
+     "parse it and start querying",
+], title_color=ACCENT)
 
 
-# ── Slide 10: GetObservation filters ─────────────────────────────────────────
-s = add_slide()
+# ── Slide 23: GetObservation Filters ──────────────────────────────────────────
+s = new_slide()
 heading(s, "GetObservation — Three Filter Dimensions",
-        "GET /sos/observations  —  all filters are optional and combinable")
+        "GET /sos/observations  —  all filters optional and combinable",
+        bar_color=P2_BAR)
 
-card(s, Inches(0.5), Inches(1.3), Inches(3.9), Inches(3.5),
-     "🌍  Spatial", [
-     "country=Japan",
-     "  case-insensitive exact match",
-     "",
-     "bbox=60,10,140,50",
-     "  minLon, minLat, maxLon, maxLat",
-     "  EPSG:4326",
-     "",
-     "Draw tool fills bbox from map",
-])
+for i, (title, rows, col) in enumerate([
+    ("Spatial", [
+        ("country", "Japan", "case-insensitive exact match"),
+        ("bbox",    "60,10,140,50", "minLon,minLat,maxLon,maxLat"),
+    ], TEAL),
+    ("Temporal", [
+        ("after", "2025-01-01 00:00:00", "everything after this instant"),
+        ("start", "2025-01-01",          "start of time window"),
+        ("end",   "2025-03-31",          "end of time window"),
+    ], ACCENT),
+    ("Parameter", [
+        ("param",  "temperature",  "temperature/humidity/wind_speed/..."),
+        ("op",     "between",      "eq neq lt lte gt gte between"),
+        ("value",  "30",           "comparison value"),
+        ("value2", "40",           "upper bound (between only)"),
+    ], GREEN),
+]):
+    bx = Inches(0.35 + i * 4.35)
+    card(s, bx, Inches(1.35), Inches(4.1), Inches(3.8),
+         title, [f"{k}={v}" + f"\n  {desc}" for k, v, desc in rows],
+         title_color=col, bullet_size=10)
 
-card(s, Inches(4.7), Inches(1.3), Inches(3.9), Inches(3.5),
-     "⏱  Temporal", [
-     "after=2025-01-01 00:00:00",
-     "  returns everything after",
-     "",
-     "start=2025-01-01",
-     "end=2025-03-31",
-     "  time window (inclusive)",
-     "",
-     "datetime-local inputs in UI",
-])
-
-card(s, Inches(8.9), Inches(1.3), Inches(3.93), Inches(3.5),
-     "📊  Parameter Filter", [
-     "param=temperature",
-     "  temperature / humidity /",
-     "  wind_speed / pressure /",
-     "  precipitation",
-     "",
-     "op=gt  value=30",
-     "Operators: eq neq lt lte",
-     "          gt gte between",
-])
-
-box4 = s.shapes.add_shape(1, Inches(0.5), Inches(5.05), Inches(12.33), Inches(0.9))
-box4.fill.solid(); box4.fill.fore_color.rgb = RGBColor(0x07, 0x1e, 0x2a)
-box4.line.color.rgb = ACCENT
-txb(s, "Example: Asian sensors where temperature was between 30–40°C in Jan 2025\n"
-       "/sos/observations?bbox=60,5,150,55&param=temperature&op=between&value=30&value2=40&start=2025-01-01&end=2025-01-31",
-    Inches(0.7), Inches(5.12), Inches(11.93), Inches(0.76),
-    size=11, color=ACCENT)
+no_line(rect(s, Inches(0.35), Inches(5.35), Inches(12.63), Inches(1.3),
+             fill=RGBColor(0xf0, 0xf9, 0xf8), line=TEAL))
+txt(s, "Example — Asian sensors, temperature 30–40°C, January 2025:",
+    Inches(0.55), Inches(5.42), Inches(12.23), Inches(0.3),
+    size=10, bold=True, color=TEAL)
+txt(s, "/sos/observations?bbox=60,5,150,55&param=temperature&op=between&value=30&value2=40&start=2025-01-01&end=2025-01-31",
+    Inches(0.55), Inches(5.75), Inches(12.23), Inches(0.7),
+    size=10, color=TEXT, font="Courier New")
 
 
-# ── Slide 11: SQL Engine ──────────────────────────────────────────────────────
-s = add_slide()
-heading(s, "Dynamic SQL — Safe Parameterized Queries",
-        "How URL filters become database queries in main.py")
+# ── Slide 24: SQL Engine ───────────────────────────────────────────────────────
+s = new_slide()
+heading(s, "Dynamic SQL — main.py Filter Engine",
+        "URL parameters become safe, parameterized SQLite queries",
+        bar_color=P2_BAR)
 
-code_box(s, """\
-conditions = []
+code_card(s, """\
+conditions  = []
 bind_params = []
 
-# Spatial
-if country:
-    conditions.append("LOWER(country) = LOWER(?)")
-    bind_params.append(country)
-
+# Spatial — bounding box
 if bbox:
     min_lon, min_lat, max_lon, max_lat = map(float, bbox.split(","))
     conditions.append("longitude BETWEEN ? AND ?")
     conditions.append("latitude  BETWEEN ? AND ?")
     bind_params += [min_lon, max_lon, min_lat, max_lat]
 
-# Temporal
+# Spatial — country
+if country:
+    conditions.append("LOWER(country) = LOWER(?)")
+    bind_params.append(country)
+
+# Temporal — time window
 if start:
     conditions.append("timestamp >= ?")
     bind_params.append(start)
+if end:
+    conditions.append("timestamp <= ?")
+    bind_params.append(end)
 
-# Parameter filter (param validated against allowlist — no injection risk)
-if param in ALLOWED_PARAMS and op == "between":
+# Parameter filter — param validated against allowlist
+ALLOWED = {"temperature","humidity","wind_speed","pressure","precipitation"}
+if param in ALLOWED and op == "between":
     conditions.append(f"{param} BETWEEN ? AND ?")
     bind_params += [value, value2]
 
-# Build and execute
 where = "WHERE " + " AND ".join(conditions) if conditions else ""
 sql   = f"SELECT * FROM observations {where} LIMIT ?"
-bind_params.append(limit)
 rows  = conn.execute(sql, bind_params).fetchall()""",
-    Inches(0.5), Inches(1.25), Inches(7.8), Inches(5.7))
+    Inches(0.35), Inches(1.35), Inches(8.0), Inches(5.6))
 
-card(s, Inches(8.5), Inches(1.25), Inches(4.33), Inches(2.6),
-     "Security: SQL Injection Prevention", [
+card(s, Inches(8.55), Inches(1.35), Inches(4.43), Inches(2.6),
+     "SQL Injection Safety", [
      "? placeholders keep values",
-     "separate from the SQL string",
-     "",
-     "User input NEVER pasted",
-     "directly into SQL",
-     "",
+     "  separate from the SQL string",
+     "User input never concatenated",
+     "  directly into SQL",
      "param column name validated",
-     "against an explicit allowlist",
-])
-card(s, Inches(8.5), Inches(4.05), Inches(4.33), Inches(2.9),
-     "Response Formats", [
-     "fmt=xml (default):",
-     "  rows_to_xml() wraps each",
-     "  row in <Observation> tags",
-     "",
-     "fmt=json:",
-     "  FastAPI returns list of",
-     "  dicts directly as JSON",
-])
+     "  against an explicit allowlist",
+], title_color=RED)
+
+card(s, Inches(8.55), Inches(4.15), Inches(4.43), Inches(2.8),
+     "O&M XML Output", [
+     "rows_to_xml() wraps each row:",
+     "<Observations count='N'>",
+     "  <Observation>",
+     "    <temperature>24.0</temperature>",
+     "    <timestamp>2025-01-15</timestamp>",
+     "    <sensor_id>Tokyo_Japan</sensor_id>",
+     "  </Observation>",
+], title_color=TEAL)
 
 
-# ── Slide 12: O&M Mapping ─────────────────────────────────────────────────────
-s = add_slide()
-heading(s, "O&M — Observations & Measurements",
-        "How our SQLite rows map to the ISO 19156 / OGC standard")
+# ── Slide 25: O&M Mapping ─────────────────────────────────────────────────────
+s = new_slide()
+heading(s, "O&M Concept Mapping",
+        "Every SQLite row is an informal O&M Observation",
+        bar_color=P2_BAR)
 
-table(s,
-    ["O&M Concept", "Definition", "Our Database Column"],
+data_table(s,
+    ["O&M Concept", "Definition", "Our SQLite Column"],
     [
         ["featureOfInterest", "The place being observed",
          "location_name, latitude, longitude"],
-        ["observedProperty",  "What is being measured",
-         "column name: temperature / humidity / ..."],
-        ["procedure",         "The sensor that made the observation",
-         "sensor_id  →  links to SensorML <System>"],
-        ["phenomenonTime",    "When the observation was made",
+        ["observedProperty", "What is being measured",
+         "column name: temperature / humidity / wind_speed / ..."],
+        ["procedure", "The sensor that made the observation",
+         "sensor_id  →  links to SensorML <System> entry"],
+        ["phenomenonTime", "When the observation was made",
          "timestamp  (e.g. '2025-01-15 11:30:00')"],
-        ["result",            "The measured value + unit",
-         "numeric value + unit declared in SensorML"],
+        ["result", "The measured value + unit",
+         "numeric value + unit declared in SensorML outputs"],
     ],
-    Inches(0.5), Inches(1.3), Inches(12.33), Inches(3.8),
-    col_widths=[Inches(2.5), Inches(3.8), Inches(5.5)],
+    Inches(0.35), Inches(1.35), Inches(12.63), Inches(3.6),
+    col_widths=[Inches(2.5), Inches(3.8), Inches(5.8)],
 )
 
-box5 = s.shapes.add_shape(1, Inches(0.5), Inches(5.35), Inches(12.33), Inches(1.35))
-box5.fill.solid(); box5.fill.fore_color.rgb = RGBColor(0x07, 0x1e, 0x2a)
-box5.line.color.rgb = ACCENT
-txb(s, "XML output from /sos/observations:", Inches(0.7), Inches(5.4),
-    Inches(4.0), Inches(0.35), size=11, bold=True, color=ACCENT)
-code_box(s,
-    "<Observations count=\"30\">  <Observation>  <location_name>Berlin</location_name>"
-    "  <temperature>6.3</temperature>  <timestamp>2025-01-01 11:30:00</timestamp>"
-    "  <sensor_id>Berlin_Germany</sensor_id>  </Observation>  ...</Observations>",
-    Inches(0.5), Inches(5.82), Inches(12.33), Inches(0.75))
+no_line(rect(s, Inches(0.35), Inches(5.15), Inches(12.63), Inches(1.95),
+             fill=RGBColor(0xf0, 0xf9, 0xf8), line=TEAL))
+txt(s, "XML response structure from /sos/observations:",
+    Inches(0.55), Inches(5.22), Inches(6.0), Inches(0.3),
+    size=10, bold=True, color=TEAL)
+txt(s, '<Observations count="30">  <Observation>  '
+       '<location_name>Berlin</location_name>  <temperature>6.3</temperature>  '
+       '<humidity>75</humidity>  <timestamp>2025-01-01 11:30:00</timestamp>  '
+       '<sensor_id>Berlin_Germany</sensor_id>  </Observation>  ...',
+    Inches(0.55), Inches(5.56), Inches(12.23), Inches(1.4),
+    size=9.5, color=TEXT, font="Courier New")
 
 
-# ── Slide 13: Backend ─────────────────────────────────────────────────────────
-s = add_slide()
-heading(s, "Backend — FastAPI",
-        "Python web framework: each URL is a decorated function")
+# ── Slide 26: Frontend — SOS Tab ──────────────────────────────────────────────
+s = new_slide()
+heading(s, "Frontend — SOS Tab Structure",
+        "sos.js handles map, fetch pipeline, XML parsing, table, and charts",
+        bar_color=P2_BAR)
 
-code_box(s, """\
-# @app.get decorates a function to handle an HTTP GET at that path
+data_table(s,
+    ["File", "Role"],
+    [
+        ["sos.js (624 lines)", "Entire SOS tab: map init, fetch, XML parse, table, charts, bidirectional sync"],
+        ["tabs.js",           "Switches OGC ↔ SOS tab, initialises sosMap on first open (needs div visible)"],
+        ["index.html #sosTab","Left filter panel + right sos-map-pane + sos-bottom (table + charts)"],
+        ["style.css",         "SOS-specific layout: .sos-body, .sos-panel, .sos-map-pane, .sos-bottom"],
+    ],
+    Inches(0.35), Inches(1.35), Inches(12.63), Inches(2.3),
+    col_widths=[Inches(2.5), Inches(9.6)],
+)
 
-@app.get("/sos/capabilities")
-def get_capabilities():
-    return Response(content=xml_string, media_type="application/xml")
+card(s, Inches(0.35), Inches(3.85), Inches(5.9), Inches(3.3),
+     "sos.js Module State", [
+     "sosMap         — OL map instance",
+     "sosMarkerSource — vector features (dots)",
+     "_currentObs[]  — last fetched observations",
+     "_sensorMeta{}  — sensor_id → lat/lon/name",
+     "_selectedSensor — currently clicked sensor",
+     "_barChart / _pieChart — Chart.js instances",
+], title_color=TEAL)
 
-@app.get("/sos/sensor")
-def describe_sensor():
-    with open("sensorml.xml") as f:
-        return Response(content=f.read(), media_type="application/xml")
-
-@app.get("/sos/sensors")
-def get_sensors():
-    rows = conn.execute("SELECT sensor_id, AVG(lat)... GROUP BY sensor_id")
-    return [dict(r) for r in rows]   # FastAPI auto-converts to JSON
-
-@app.get("/sos/observations")
-def get_observations(country=None, bbox=None, start=None, ...):
-    # ... build SQL, return XML or JSON
-
-# Frontend static files served at /app  (MUST be last — after all API routes)
-app.mount("/app", StaticFiles(directory="../frontend"), name="frontend")""",
-    Inches(0.5), Inches(1.25), Inches(7.8), Inches(5.0))
-
-card(s, Inches(8.5), Inches(1.25), Inches(4.33), Inches(2.3),
-     "SOS Operations → Endpoints", [
-     "GetCapabilities → /sos/capabilities",
-     "DescribeSensor  → /sos/sensor",
-     "GetObservation  → /sos/observations",
-     "  (custom)      → /sos/sensors",
-])
-card(s, Inches(8.5), Inches(3.75), Inches(4.33), Inches(2.5),
-     "Key middleware", [
-     "CORSMiddleware — allows browser",
-     "  to call API from any origin",
-     "",
-     "StaticFiles — serves the whole",
-     "  frontend at /app/",
-     "  single port for everything",
-])
+card(s, Inches(6.55), Inches(3.85), Inches(6.43), Inches(3.3),
+     "Fetch → Render Pipeline", [
+     "1. fetchObservations() reads all form fields",
+     "2. Builds URL with URLSearchParams",
+     "3. fetch() → raw XML text from FastAPI",
+     "4. _parseObsXML() → JS array of objects",
+     "5. Stored in _currentObs[]",
+     "6. _renderObsMarkers() recolours dots",
+     "7. _renderTable() builds <tr> rows",
+     "8. _renderCharts() draws bar + doughnut",
+], title_color=ACCENT)
 
 
-# ── Slide 14: Frontend Architecture ──────────────────────────────────────────
-s = add_slide()
-heading(s, "Frontend Architecture",
-        "Pure HTML / CSS / JS — no framework, loads in any browser")
-
-for i, (fname, desc) in enumerate([
-    ("index.html",     "UI skeleton. Two tab divs: #ogcTab and #sosTab. Only one visible at a time via tabs.js."),
-    ("tabs.js",        "Switches between OGC and SOS tabs. Initialises the SOS OpenLayers map on first open."),
-    ("sos.js",         "Entire SOS tab brain: map init, fetch pipeline, XML parser, table builder, Chart.js charts."),
-    ("map.js",         "OGC tab map. OpenLayers base + WMS layer add/remove + BBOX draw interaction."),
-    ("ogcRequests.js", "WMS/WFS request builders — constructs GetCapabilities, GetMap, GetFeature URLs."),
-    ("config.js",      "Shared globals: setStatus() updates header dot; showNotification() shows toast popups."),
-]):
-    row_y = Inches(1.3 + i * 0.9)
-    bx = s.shapes.add_shape(1, Inches(0.5), row_y, Inches(2.5), Inches(0.7))
-    bx.fill.solid(); bx.fill.fore_color.rgb = BG2
-    bx.line.color.rgb = ACCENT
-    txb(s, fname, Inches(0.6), row_y + Inches(0.18), Inches(2.3), Inches(0.35),
-        size=12, bold=True, color=ACCENT)
-    txb(s, desc, Inches(3.2), row_y + Inches(0.12), Inches(9.63), Inches(0.5),
-        size=11, color=LIGHT)
-
-
-# ── Slide 15: SOS Map ─────────────────────────────────────────────────────────
-s = add_slide()
+# ── Slide 27: SOS Map ──────────────────────────────────────────────────────────
+s = new_slide()
 heading(s, "SOS Tab — Interactive Map",
-        "OpenLayers map · 25 sensor markers · temperature colour encoding")
+        "25 sensor markers coloured by average temperature of loaded observations",
+        bar_color=P2_BAR)
 
-card(s, Inches(0.5), Inches(1.3), Inches(3.9), Inches(3.4),
-     "Marker Colour = Temperature", [
-     "< 0°C      blue  (#60a5fa)",
-     "0–15°C     teal  (#34d399)",
-     "15–25°C    green (#4ade80)",
-     "25–35°C    orange(#fb923c)",
-     "> 35°C     red   (#ef4444)",
+for i, (title, items, col) in enumerate([
+    ("Temperature Colour Scale", [
+     "< 0 °C      Blue  — freezing",
+     "0 – 15 °C   Teal  — cool",
+     "15 – 25 °C  Green — mild",
+     "25 – 35 °C  Orange — warm",
+     "> 35 °C     Red   — hot",
      "",
      "Grey = no data loaded yet",
-])
-
-card(s, Inches(4.7), Inches(1.3), Inches(3.9), Inches(3.4),
-     "Map Layers (z-index stacking)", [
+     "Marker size: 7px / 11px (selected)",
+    ], TEAL),
+    ("Map Layer Stack", [
      "Layer 0: OSM base tiles",
+     " ol.layer.Tile + ol.source.OSM",
      "Layer 1: sensor marker dots",
-     "          (zIndex = 10)",
+     " ol.layer.Vector  zIndex=10",
      "Layer 2: bbox draw rectangle",
-     "          (zIndex = 20)",
+     " ol.layer.Vector  zIndex=20",
      "",
-     "OpenLayers Vector features",
-])
-
-card(s, Inches(8.9), Inches(1.3), Inches(3.93), Inches(3.4),
-     "BBOX Draw Tool", [
+     "All layers in one ol.Map on #sosMap",
+    ], ACCENT),
+    ("BBOX Draw Tool", [
      "Click '✏ Draw' button",
+     "ol.interaction.Draw added to map",
      "Drag rectangle on map",
-     "Release → coordinates",
-     "auto-fill the four bbox",
-     "input fields",
-     "",
-     "ol.interaction.Draw + createBox()",
-])
+     "drawend event fires:",
+     " geometry.getExtent()",
+     " transformExtent → EPSG:4326",
+     " fills four bbox input fields",
+    ], GREEN),
+]):
+    card(s, Inches(0.35 + i * 4.35), Inches(1.35), Inches(4.1), Inches(4.6),
+         title, items, title_color=col)
 
-card(s, Inches(0.5), Inches(5.0), Inches(12.33), Inches(1.55),
-     "Popup on Marker Click", [
-     "Shows: city name, country, observation count loaded, latest temp/humidity/wind/pressure/precip/timestamp",
-     "OL Overlay element anchored to marker coordinate with autoPan animation",
-])
+card(s, Inches(0.35), Inches(6.15), Inches(12.63), Inches(1.0),
+     "Popup Overlay (OL Overlay)", [
+     "Attached to document.body so OL absolute positioning works correctly  ·  "
+     "Shows: city, country, obs count, latest temp/humidity/wind/pressure/precip/timestamp",
+], title_color=TEXT_MUTE, bullet_size=10)
 
 
-# ── Slide 16: Table & Charts ──────────────────────────────────────────────────
-s = add_slide()
-heading(s, "SOS Tab — Data Table & Charts")
+# ── Slide 28: Table & Charts ───────────────────────────────────────────────────
+s = new_slide()
+heading(s, "SOS Tab — Data Table & Visualisations",
+        "Observations rendered as a sortable table and two Chart.js charts",
+        bar_color=P2_BAR)
 
-card(s, Inches(0.5), Inches(1.3), Inches(5.9), Inches(2.5),
-     "Observation Table (up to 500 rows)", [
+card(s, Inches(0.35), Inches(1.35), Inches(6.1), Inches(2.5),
+     "Observation Table", [
      "Columns: #, City, Country, Timestamp,",
      "  Temp °C, Humidity %, Wind kph,",
      "  Pressure mb, Precip mm",
-     "",
-     "Temperature cells rendered as coloured",
-     "  badges matching the map legend",
-])
+     "Up to 500 rows displayed",
+     "Temp cells: coloured badge matching legend",
+], title_color=ACCENT)
 
-card(s, Inches(6.9), Inches(1.3), Inches(5.93), Inches(2.5),
+card(s, Inches(6.75), Inches(1.35), Inches(6.23), Inches(2.5),
      "XML Response Panel", [
-     "Raw XML from the server displayed in full",
-     "Shows the actual O&M-structured response",
-     "Copy button for clipboard export",
-     "",
+     "Raw XML from server shown in full",
+     "Displays actual O&M-structured response",
      "Request URL shown above — copy-pasteable",
-     "  directly into curl or Postman",
-])
+     "⧉ Copy button for clipboard export",
+], title_color=TEXT_MUTE)
 
-card(s, Inches(0.5), Inches(4.1), Inches(5.9), Inches(2.5),
-     "Bar Chart (Chart.js)", [
-     "Average temperature by city (top 10)",
-     "Bars coloured with same temperature scale",
-     "  as map markers",
-     "Responsive, dark-mode aware tick colours",
-])
+card(s, Inches(0.35), Inches(4.1), Inches(6.1), Inches(3.05),
+     "Bar Chart — Avg Temperature by City", [
+     "Chart.js type: 'bar'",
+     "Top 10 cities by average temperature",
+     "Bar colour = same temperature scale",
+     "  as map markers (_tempColor function)",
+     "Responsive, maintainAspectRatio: false",
+     "Redrawn on every fetch (old instance",
+     "  destroyed first to avoid memory leak)",
+], title_color=TEAL)
 
-card(s, Inches(6.9), Inches(4.1), Inches(5.93), Inches(2.5),
-     "Doughnut Chart (Chart.js)", [
-     "Observation count by city",
-     "Shows which sensors have the most data",
+card(s, Inches(6.75), Inches(4.1), Inches(6.23), Inches(3.05),
+     "Doughnut Chart — Observation Count", [
+     "Chart.js type: 'doughnut'",
+     "Shows which sensors have most data",
      "  in the current filter result",
-     "Legend on the right with city names",
-])
+     "Top 8 cities shown in legend",
+     "Legend positioned on right side",
+     "borderColor matches bg for segment gap",
+], title_color=GREEN)
 
 
-# ── Slide 17: Bidirectional Sync ──────────────────────────────────────────────
-s = add_slide()
+# ── Slide 29: Bidirectional Sync ───────────────────────────────────────────────
+s = new_slide()
 heading(s, "Bidirectional Marker ↔ Table Sync",
-        "Click anything — everything else reacts")
+        "Clicking anything makes everything else react — map, table, and popup stay in sync",
+        bar_color=P2_BAR)
 
-card(s, Inches(0.5), Inches(1.3), Inches(5.9), Inches(3.8),
-     "Click a table row →", [
-     "Row highlights with blue outline",
-     "Map pans and zooms to that sensor",
+card(s, Inches(0.35), Inches(1.35), Inches(5.9), Inches(3.3),
+     "Click a table row  →", [
+     "Row highlighted (blue outline)",
+     "Map pans + zooms to that sensor",
      "Marker enlarges (radius 7 → 11px)",
-     "White stroke on selected marker",
-     "Popup opens showing latest values",
-])
+     "White border added to marker",
+     "Popup opens with latest values",
+], title_color=ACCENT)
 
-card(s, Inches(6.9), Inches(1.3), Inches(5.93), Inches(3.8),
-     "Click a map marker →", [
+card(s, Inches(6.55), Inches(1.35), Inches(6.43), Inches(3.3),
+     "Click a map marker  →", [
      "Marker enlarges + white stroke",
-     "Popup appears above the dot",
-     "Matching table row highlights",
+     "OL Overlay popup anchored to coordinate",
+     "Matching table row highlighted",
      "Table auto-scrolls to that row",
      "Previous selection deselected",
-])
+], title_color=TEAL)
 
-code_box(s, """\
-// Table row click → map pan + popup
+code_card(s, """\
+// Table row click → map pan
 tr.addEventListener("click", () => {
   _selectSensor(sensorId);
-  const coord = markerFeature.getGeometry().getCoordinates();
-  sosMap.getView().animate({ center: coord, zoom: 4 });
+  const f = sosMarkerSource.getFeatures()
+              .find(f => f.get("sensor_id") === sensorId);
+  const coord = f.getGeometry().getCoordinates();
+  sosMap.getView().animate({ center: coord, zoom: 4, duration: 500 });
   _showSensorPopup(sensorId, coord);
 });
 
-// Map click → table highlight
+// Map marker click → table highlight
 sosMap.on("click", (evt) => {
   sosMap.forEachFeatureAtPixel(evt.pixel, (feature) => {
     const sid = feature.get("sensor_id");
-    _highlightTableRow(sid);       // finds <tr data-sensor-id="...">
+    _selectSensor(sid);
+    _highlightTableRow(sid);          // adds .sos-row-selected CSS class
     row.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, { hitTolerance: 8 });
 });""",
-    Inches(0.5), Inches(5.35), Inches(12.33), Inches(1.75))
+    Inches(0.35), Inches(4.85), Inches(12.63), Inches(2.4))
 
 
-# ── Slide 18: Request Lifecycle ───────────────────────────────────────────────
-s = add_slide()
-heading(s, "Full Request Lifecycle",
-        "You click 'Get Observations' — every step that follows")
+# ── Slide 30: Summary & Standards Compliance ──────────────────────────────────
+s = new_slide()
+heading(s, "Summary — Standards Compliance & Results",
+        "GeoPulse implements OGC WMS, WFS, and SOS across both projects",
+        bar_color=P2_BAR)
 
-steps = [
-    ("1  Browser reads form",
-     "Builds URL: /sos/observations?country=Japan&param=temperature&op=gt&value=25&limit=500"),
-    ("2  HTTP GET → FastAPI",
-     "Request arrives at main.py · get_observations() · params extracted automatically by FastAPI"),
-    ("3  SQL built & executed",
-     "SELECT * FROM observations WHERE LOWER(country)=LOWER('Japan') AND temperature>25 LIMIT 500"),
-    ("4  rows_to_xml()",
-     "Each SQLite row wrapped in <Observation> tags · returned as application/xml"),
-    ("5  DOMParser in browser",
-     "XML string → tree → JS array of objects · stored in _currentObs[]"),
-    ("6  Three parallel renders",
-     "_renderObsMarkers() recolours dots · _renderTable() builds rows · _renderCharts() draws charts"),
-]
-
-for i, (step, detail) in enumerate(steps):
-    y = Inches(1.3 + i * 0.92)
-    bx = s.shapes.add_shape(1, Inches(0.5), y, Inches(12.33), Inches(0.78))
-    bx.fill.solid()
-    bx.fill.fore_color.rgb = RGBColor(0x10, 0x1a, 0x30) if i % 2 == 0 else BG2
-    bx.line.color.rgb = BORDER
-    txb(s, step,  Inches(0.65), y + Inches(0.05), Inches(3.0), Inches(0.35),
-        size=11, bold=True, color=ACCENT)
-    txb(s, detail, Inches(3.7), y + Inches(0.12), Inches(8.93), Inches(0.55),
-        size=10, color=LIGHT)
-
-
-# ── Slide 19: Standards Compliance ───────────────────────────────────────────
-s = add_slide()
-heading(s, "Standards Compliance Summary")
-
-table(s,
-    ["Standard", "Concept", "Our Implementation"],
+data_table(s,
+    ["Standard", "Operation", "Implementation"],
     [
+        ["WMS 1.1",     "GetCapabilities, GetMap, GetFeatureInfo",
+         "Project 1 — full WMS client against GeoServer"],
+        ["WFS 2.0",     "GetCapabilities, GetFeature",
+         "Project 1 — WFS client with BBOX + max features"],
         ["SOS 2.0",     "GetCapabilities",
-         "GET /sos/capabilities → Capabilities XML with OperationsMetadata"],
+         "GET /sos/capabilities → Capabilities XML"],
         ["SOS 2.0",     "DescribeSensor",
-         "GET /sos/sensor → SensorML 2.0 document (10 sensors)"],
+         "GET /sos/sensor → SensorML 2.0 document"],
         ["SOS 2.0",     "GetObservation",
          "GET /sos/observations → spatial + temporal + parameter filters"],
         ["O&M",         "Observation model",
-         "Each DB row encodes all 5 O&M components (procedure, time, result...)"],
+         "Each DB row encodes all 5 O&M components"],
         ["SensorML 2.0","System description",
-         "Sensors described with GML location, output list, units"],
-        ["WMS 1.1",     "GetCapabilities + GetMap",
-         "OGC tab — full WMS client against GeoServer (Project 1)"],
-        ["WFS 2.0",     "GetCapabilities + GetFeature",
-         "OGC tab — WFS client with BBOX, max features (Project 1)"],
+         "10 sensors with GML location + output list + units"],
     ],
-    Inches(0.5), Inches(1.3), Inches(12.33), Inches(5.3),
-    col_widths=[Inches(1.5), Inches(2.5), Inches(7.8)],
+    Inches(0.35), Inches(1.35), Inches(12.63), Inches(4.0),
+    col_widths=[Inches(1.5), Inches(3.2), Inches(7.4)],
 )
 
+card(s, Inches(0.35), Inches(5.6), Inches(6.1), Inches(1.55),
+     "Run Commands", [
+     "cd project_2/GeoPulse/backend",
+     "pip install -r requirements.txt",
+     "uvicorn main:app --host 127.0.0.1 --port 8000",
+     "→ open http://127.0.0.1:8000",
+], title_color=TEAL, bullet_size=10)
 
-# ── Slide 20: Summary ─────────────────────────────────────────────────────────
-s = add_slide()
-heading(s, "Summary & What's Next")
-
-card(s, Inches(0.5), Inches(1.3), Inches(5.9), Inches(3.6),
-     "What Was Built", [
-     "Unified OGC portal (WMS + WFS + SOS)",
-     "25-sensor global weather observatory",
-     "SOS 2.0 operations over real data",
-     "SensorML + O&M compliant responses",
-     "Interactive map, table, charts",
-     "Single-command deployment",
-])
-
-card(s, Inches(6.9), Inches(1.3), Inches(5.93), Inches(3.6),
-     "Stack", [
-     "Python 3  ·  FastAPI  ·  SQLite",
-     "OpenLayers  ·  Chart.js",
-     "OGC SOS 2.0  ·  SensorML 2.0  ·  O&M",
-     "",
-     "No external dependencies beyond:",
-     "  pip install -r requirements.txt",
-     "  uvicorn main:app --port 8000",
-])
-
-card(s, Inches(0.5), Inches(5.15), Inches(5.9), Inches(1.85),
-     "Possible Next Steps", [
-     "Migrate to istSOS (OGC-certified server)",
-     "Containerise with Docker Compose",
-     "Real-time ingestion via InsertObservation",
-])
-
-box6 = s.shapes.add_shape(1, Inches(6.9), Inches(5.15), Inches(5.93), Inches(1.85))
-box6.fill.solid(); box6.fill.fore_color.rgb = RGBColor(0x07, 0x1e, 0x2a)
-box6.line.color.rgb = ACCENT
-txb(s, "◈  GeoPulse", Inches(7.1), Inches(5.3), Inches(5.5), Inches(0.5),
-    size=18, bold=True, color=ACCENT, align=PP_ALIGN.CENTER)
-txb(s, "cd backend", Inches(7.1), Inches(5.78),
-    Inches(5.5), Inches(0.3), size=11, color=GREY, align=PP_ALIGN.CENTER)
-txb(s, "uvicorn main:app --host 127.0.0.1 --port 8000",
-    Inches(7.1), Inches(6.08), Inches(5.5), Inches(0.3),
-    size=11, color=ACCENT, align=PP_ALIGN.CENTER)
-txb(s, "http://127.0.0.1:8000",
-    Inches(7.1), Inches(6.42), Inches(5.5), Inches(0.35),
-    size=13, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+card(s, Inches(6.75), Inches(5.6), Inches(6.23), Inches(1.55),
+     "Possible Extensions", [
+     "Migrate SOS backend to istSOS + Docker",
+     "Real-time data via InsertObservation",
+     "WCS (Web Coverage Service) for rasters",
+], title_color=ACCENT, bullet_size=10)
 
 
 # ── Save ──────────────────────────────────────────────────────────────────────
-out = "GeoPulse_Presentation.pptx"
+out = os.path.join(os.path.dirname(__file__), "GeoPulse_Presentation.pptx")
 prs.save(out)
-print(f"✅  Saved: {out}  ({prs.slides.__len__()} slides)")
+print(f"✅  Saved: {out}  ({len(prs.slides)} slides)")
