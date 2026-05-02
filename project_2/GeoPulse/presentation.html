@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GeoPulse — GNR629 Project 2</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/night.css"/>
+  <style>
+    :root {
+      --accent:  #0fd6c2;
+      --accent2: #4f6ef7;
+      --warn:    #fb923c;
+      --green:   #4ade80;
+      --red:     #ef4444;
+    }
+
+    .reveal { font-family: "Segoe UI", sans-serif; }
+    .reveal h1, .reveal h2, .reveal h3 { color: var(--accent); text-transform: none; }
+    .reveal h1 { font-size: 1.9em; }
+    .reveal h2 { font-size: 1.4em; border-bottom: 2px solid var(--accent); padding-bottom: 6px; margin-bottom: 0.5em; }
+    .reveal h3 { color: #e2e8f0; font-size: 1em; font-weight: 500; }
+    .reveal pre  { font-size: 0.52em; border-radius: 6px; }
+    .reveal code { font-family: "JetBrains Mono", monospace; color: #f8f8f2; }
+    .reveal ul { list-style: none; padding: 0; }
+    .reveal ul li::before { content: "▸ "; color: var(--accent); }
+    .reveal ul li { margin-bottom: 0.35em; }
+    .reveal .slides section { padding: 20px 40px; }
+
+    .tag { display:inline-block; padding:3px 10px; border-radius:4px; font-size:0.65em;
+           font-weight:700; font-family:monospace; vertical-align:middle; }
+    .tag-sos  { background:rgba(15,214,194,0.2); color:var(--accent); }
+    .tag-wms  { background:rgba(79,110,247,0.2); color:var(--accent2); }
+    .tag-wfs  { background:rgba(251,146,60,0.2); color:var(--warn); }
+    .tag-om   { background:rgba(74,222,128,0.2); color:var(--green); }
+
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+    .card  { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+             border-radius:8px; padding:14px 16px; }
+    .card h4 { margin:0 0 8px; font-size:0.85em; color:var(--accent); }
+    .card p, .card li { font-size:0.72em; color:#cbd5e1; margin:0; }
+    .card ul { margin:0; padding:0; }
+
+    .box { background:rgba(15,214,194,0.08); border-left:3px solid var(--accent);
+           padding:10px 16px; border-radius:4px; font-size:0.8em; margin:8px 0; }
+
+    .flow { display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap; }
+    .flow-box { background:rgba(79,110,247,0.15); border:1px solid var(--accent2);
+                border-radius:6px; padding:8px 14px; font-size:0.7em; text-align:center; }
+    .flow-arrow { color:var(--accent); font-size:1.2em; }
+
+    table { font-size:0.65em; width:100%; border-collapse:collapse; }
+    th { background:rgba(15,214,194,0.15); color:var(--accent); padding:8px 10px; text-align:left; }
+    td { padding:7px 10px; border-bottom:1px solid rgba(255,255,255,0.06); color:#cbd5e1; }
+    tr:hover td { background:rgba(255,255,255,0.04); }
+
+    .num-big { font-size:2.2em; font-weight:800; color:var(--accent); }
+    .label-small { font-size:0.6em; color:#94a3b8; display:block; }
+
+    .badge { display:inline-block; padding:2px 8px; border-radius:10px;
+             font-size:0.7em; font-weight:700; color:#fff; }
+    .badge-blue   { background:#60a5fa; }
+    .badge-teal   { background:#34d399; }
+    .badge-green  { background:#4ade80; }
+    .badge-orange { background:#fb923c; }
+    .badge-red    { background:#ef4444; }
+
+    .subtitle { color:#94a3b8; font-size:0.8em; }
+    .highlight { color:var(--accent); font-weight:700; }
+
+    .two-col-list { columns:2; column-gap:30px; }
+
+    footer-note { display:block; font-size:0.5em; color:#64748b; margin-top:14px; }
+  </style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ═══════════════════════════ SLIDE 1 — TITLE ═══════════════════════ -->
+<section>
+  <div style="text-align:center; padding-top:20px">
+    <div style="font-size:3em; margin-bottom:10px">◈</div>
+    <h1>GeoPulse</h1>
+    <p style="font-size:1.1em; color:var(--accent2)">An OGC-Compliant Geospatial Web Portal</p>
+    <hr style="border-color:rgba(255,255,255,0.1); margin:20px auto; width:60%"/>
+    <p class="subtitle">GNR629 · Project 2 · CSRE, IIT Bombay</p>
+    <p class="subtitle">Manas Avinashe &nbsp;·&nbsp; 2026</p>
+    <div style="margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap">
+      <span class="tag tag-wms">OGC WMS</span>
+      <span class="tag tag-wfs">OGC WFS</span>
+      <span class="tag tag-sos">OGC SOS 2.0</span>
+      <span class="tag tag-om">O&amp;M · SensorML</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 2 — OVERVIEW ═══════════════════ -->
+<section>
+  <h2>What We Built</h2>
+  <p class="subtitle" style="margin-bottom:20px">A unified portal for two OGC projects — one URL, two services</p>
+  <div class="grid2">
+    <div class="card">
+      <h4>🗺 OGC Tab — Project 1</h4>
+      <ul>
+        <li>WMS GetCapabilities</li>
+        <li>WFS GetCapabilities &amp; GetFeature</li>
+        <li>Live OpenLayers map</li>
+        <li>Layer management + BBOX draw</li>
+        <li>GeoServer integration</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>📡 SOS Tab — Project 2</h4>
+      <ul>
+        <li>OGC SOS 2.0 operations</li>
+        <li>25 global weather sensors</li>
+        <li>Spatial + temporal + parameter filters</li>
+        <li>Interactive map with temperature markers</li>
+        <li>Live charts &amp; data table</li>
+      </ul>
+    </div>
+  </div>
+  <div class="box" style="margin-top:20px; text-align:center">
+    Both projects served from a <span class="highlight">single URL</span>:
+    <code>http://127.0.0.1:8000</code>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 3 — MOTIVATION ════════════════ -->
+<section>
+  <h2>The Problem</h2>
+  <p class="subtitle" style="margin-bottom:20px">Why do we need standards like SOS?</p>
+  <div class="grid2" style="margin-bottom:20px">
+    <div class="card">
+      <h4>Without Standards</h4>
+      <ul>
+        <li>Every sensor vendor uses a different API</li>
+        <li>Data formats incompatible across systems</li>
+        <li>No way to query sensors from multiple sources uniformly</li>
+        <li>"Vendor lock-in"</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>With OGC SOS 2.0</h4>
+      <ul>
+        <li>Universal operation names: <code>GetCapabilities</code>, <code>DescribeSensor</code>, <code>GetObservation</code></li>
+        <li>Standardised XML responses (O&amp;M)</li>
+        <li>Any compliant client can talk to any compliant server</li>
+        <li>Interoperability by design</li>
+      </ul>
+    </div>
+  </div>
+  <div class="box">
+    GeoPulse implements the <span class="highlight">SOS 2.0 operation structure</span> on top of real historical weather data, making it queryable by any OGC-aware tool.
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 4 — STANDARDS STACK ══════════ -->
+<section>
+  <h2>The OGC Standards Stack</h2>
+  <p class="subtitle" style="margin-bottom:20px">Three standards working together</p>
+  <div class="grid3">
+    <div class="card">
+      <h4><span class="tag tag-sos">SOS</span></h4>
+      <p><strong>Sensor Observation Service</strong></p>
+      <br/>
+      <p>Defines <em>how to ask</em> for sensor data — the URL operations, request/response structure</p>
+      <br/>
+      <p>Three core operations:<br/><code>GetCapabilities</code><br/><code>DescribeSensor</code><br/><code>GetObservation</code></p>
+    </div>
+    <div class="card">
+      <h4><span class="tag tag-om">O&amp;M</span></h4>
+      <p><strong>Observations &amp; Measurements</strong></p>
+      <br/>
+      <p>Defines <em>what a reading looks like</em>:<br/>
+        • <em>who</em> observed (sensor)<br/>
+        • <em>what</em> was measured<br/>
+        • <em>where</em> (location)<br/>
+        • <em>when</em> (timestamp)<br/>
+        • <em>result</em> (value + unit)
+      </p>
+    </div>
+    <div class="card">
+      <h4><span class="tag tag-wms">SensorML</span></h4>
+      <p><strong>Sensor Model Language</strong></p>
+      <br/>
+      <p>Defines the <em>sensor's identity</em>:<br/>
+        • Unique identifier<br/>
+        • Physical location (GML Point)<br/>
+        • Output capabilities (what it measures)<br/>
+        • Units of measurement
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 5 — ARCHITECTURE ══════════════ -->
+<section>
+  <h2>System Architecture</h2>
+  <div class="flow" style="margin: 24px 0">
+    <div class="flow-box" style="border-color:var(--accent)">
+      <div style="font-size:1.4em">🌐</div>
+      <strong>Browser</strong><br/>
+      <span style="color:#94a3b8">index.html<br/>sos.js / map.js</span>
+    </div>
+    <div class="flow-arrow">⟶<br/><span style="font-size:0.5em">HTTP GET<br/>fetch()</span></div>
+    <div class="flow-box" style="border-color:var(--accent2)">
+      <div style="font-size:1.4em">⚙️</div>
+      <strong>FastAPI</strong><br/>
+      <span style="color:#94a3b8">main.py<br/>port 8000</span>
+    </div>
+    <div class="flow-arrow">⟶<br/><span style="font-size:0.5em">SQL query</span></div>
+    <div class="flow-box" style="border-color:var(--warn)">
+      <div style="font-size:1.4em">🗄️</div>
+      <strong>SQLite</strong><br/>
+      <span style="color:#94a3b8">weather.db<br/>17,775 rows</span>
+    </div>
+  </div>
+  <div class="flow" style="margin: 14px 0">
+    <div class="flow-arrow" style="transform:rotate(90deg)">⟶</div>
+  </div>
+  <div class="flow">
+    <div class="flow-box" style="border-color:var(--green)">
+      <div style="font-size:1.2em">📄</div>
+      <strong>XML Response</strong><br/>
+      <span style="color:#94a3b8">O&amp;M-structured</span>
+    </div>
+    <div class="flow-arrow">⟶<br/><span style="font-size:0.5em">parse →<br/>render</span></div>
+    <div class="flow-box" style="border-color:var(--green)">
+      <div style="font-size:1.2em">🗺️</div>
+      <strong>Map + Table</strong><br/>
+      <span style="color:#94a3b8">OpenLayers<br/>Chart.js</span>
+    </div>
+    <div class="flow-arrow" style="opacity:0.4">+</div>
+    <div class="flow-box" style="border-color:var(--accent)">
+      <div style="font-size:1.2em">📡</div>
+      <strong>SensorML</strong><br/>
+      <span style="color:#94a3b8">static file</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 6 — DATA ══════════════════════ -->
+<section>
+  <h2>The Data</h2>
+  <p class="subtitle" style="margin-bottom:16px">Real historical weather data, curated for proper time-series structure</p>
+  <div class="flow" style="margin-bottom:20px">
+    <div class="flow-box">
+      <code>GlobalWeatherRepository.csv</code><br/>
+      <span style="color:#94a3b8">138,583 rows · 257 cities · 35 MB</span>
+    </div>
+    <div class="flow-arrow">→<br/><span style="font-size:0.5em">process_data.py<br/>select 25 cities</span></div>
+    <div class="flow-box">
+      <code>cleaned_weather.csv</code><br/>
+      <span style="color:#94a3b8">17,775 rows · 2 MB</span>
+    </div>
+    <div class="flow-arrow">→<br/><span style="font-size:0.5em">db_setup.py</span></div>
+    <div class="flow-box" style="border-color:var(--warn)">
+      <code>weather.db</code><br/>
+      <span style="color:#94a3b8">SQLite · 1.7 MB</span>
+    </div>
+  </div>
+  <div class="grid3" style="font-size:0.8em; text-align:center">
+    <div class="card">
+      <span class="num-big">25</span>
+      <span class="label-small">global sensor stations</span>
+    </div>
+    <div class="card">
+      <span class="num-big">~710</span>
+      <span class="label-small">readings per sensor</span>
+    </div>
+    <div class="card">
+      <span class="num-big">5</span>
+      <span class="label-small">observed parameters</span>
+    </div>
+  </div>
+  <div style="text-align:center; margin-top:14px; font-size:0.7em; color:#94a3b8">
+    temperature · humidity · wind_speed · pressure · precipitation
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 7 — 25 SENSORS ════════════════ -->
+<section>
+  <h2>25 Global Sensor Stations</h2>
+  <div class="grid2" style="font-size:0.75em">
+    <div>
+      <table>
+        <tr><th>Region</th><th>Cities</th></tr>
+        <tr><td>Asia</td><td>Tokyo, New Delhi, Beijing, Bangkok, Singapore, Tehran</td></tr>
+        <tr><td>Europe</td><td>Berlin, Rome, Warsaw, Moscow, London</td></tr>
+        <tr><td>Africa</td><td>Cairo, Nairobi, Dakar, Accra, Pretoria</td></tr>
+      </table>
+    </div>
+    <div>
+      <table>
+        <tr><th>Region</th><th>Cities</th></tr>
+        <tr><td>Americas</td><td>Ottawa, Mexico City, Lima, Buenos Aires, Montevideo</td></tr>
+        <tr><td>Middle East</td><td>Riyadh, Muscat</td></tr>
+        <tr><td>Oceania</td><td>Canberra, Wellington</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="box" style="margin-top:16px; font-size:0.8em">
+    Each station has a unique <code>sensor_id</code> (e.g. <code>Tokyo_Japan</code>)
+    that links the database record to its SensorML entry —
+    the O&amp;M concept of <em>procedure</em>.
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 8 — SENSORML ══════════════════ -->
+<section>
+  <h2>SensorML — <span class="tag tag-sos">DescribeSensor</span></h2>
+  <p class="subtitle" style="margin-bottom:14px">Served at <code>GET /sos/sensor</code> — the sensor's identity document</p>
+  <pre><code class="xml">&lt;SensorML xmlns="http://www.opengis.net/sensorml/2.0"
+          xmlns:gml="http://www.opengis.net/gml/3.2"&gt;
+  &lt;member&gt;
+    &lt;System&gt;
+      &lt;identifier&gt;Tokyo_Japan&lt;/identifier&gt;          &lt;!-- unique ID --&gt;
+      &lt;description&gt;Weather sensor in Tokyo&lt;/description&gt;
+
+      &lt;location&gt;
+        &lt;gml:Point srsName="EPSG:4326"&gt;             &lt;!-- coordinate system --&gt;
+          &lt;gml:coordinates&gt;139.69,35.69&lt;/gml:coordinates&gt;
+        &lt;/gml:Point&gt;
+      &lt;/location&gt;
+
+      &lt;outputs&gt;
+        &lt;OutputList&gt;
+          &lt;output name="temperature" unit="Celsius"/&gt;
+          &lt;output name="humidity"    unit="%"/&gt;
+          &lt;output name="wind_speed"  unit="kph"/&gt;
+          &lt;output name="pressure"    unit="mb"/&gt;
+        &lt;/OutputList&gt;
+      &lt;/outputs&gt;
+    &lt;/System&gt;
+  &lt;/member&gt;
+&lt;/SensorML&gt;</code></pre>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 9 — GET CAPABILITIES ══════════ -->
+<section>
+  <h2>GetCapabilities — Service Discovery</h2>
+  <p class="subtitle" style="margin-bottom:14px">Served at <code>GET /sos/capabilities</code> — answers: "what can this service do?"</p>
+  <pre><code class="xml">&lt;Capabilities version="2.0.0" xmlns:sos="http://www.opengis.net/sos/2.0"&gt;
+  &lt;ServiceIdentification&gt;
+    &lt;Title&gt;GeoPulse Sensor Observation Service&lt;/Title&gt;
+    &lt;ServiceType&gt;OGC:SOS&lt;/ServiceType&gt;
+    &lt;ServiceTypeVersion&gt;2.0.0&lt;/ServiceTypeVersion&gt;
+  &lt;/ServiceIdentification&gt;
+
+  &lt;OperationsMetadata&gt;
+    &lt;Operation name="GetCapabilities"/&gt;
+    &lt;Operation name="DescribeSensor"/&gt;
+    &lt;Operation name="GetObservation"&gt;
+      &lt;Parameter name="param"&gt;
+        &lt;AllowedValues&gt;
+          &lt;Value&gt;temperature&lt;/Value&gt;
+          &lt;Value&gt;humidity&lt;/Value&gt; ...
+        &lt;/AllowedValues&gt;
+      &lt;/Parameter&gt;
+    &lt;/Operation&gt;
+  &lt;/OperationsMetadata&gt;
+
+  &lt;ObservationOfferingList&gt;
+    &lt;ObservationOffering&gt;
+      &lt;identifier&gt;weather_global&lt;/identifier&gt;
+      &lt;observedProperty&gt;temperature&lt;/observedProperty&gt; ...
+    &lt;/ObservationOffering&gt;
+  &lt;/ObservationOfferingList&gt;
+&lt;/Capabilities&gt;</code></pre>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 10 — GET OBSERVATION ══════════ -->
+<section>
+  <h2>GetObservation — The Filter Engine</h2>
+  <p class="subtitle" style="margin-bottom:14px"><code>GET /sos/observations</code> — all filters are combinable</p>
+  <div class="grid3">
+    <div class="card">
+      <h4>🌍 Spatial</h4>
+      <ul>
+        <li><code>country=Japan</code></li>
+        <li><code>bbox=60,10,140,50</code><br/><span style="font-size:0.85em; color:#94a3b8">minLon,minLat,maxLon,maxLat</span></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>⏱ Temporal</h4>
+      <ul>
+        <li><code>after=2025-01-01</code></li>
+        <li><code>start=2025-01-01</code></li>
+        <li><code>end=2025-03-31</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>📊 Parameter</h4>
+      <ul>
+        <li><code>param=temperature</code></li>
+        <li><code>op=gt</code></li>
+        <li><code>value=30</code></li>
+        <li>Operators: <code>eq neq lt lte gt gte between</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="box" style="margin-top:14px; font-size:0.75em">
+    Example: all stations in Asia where temperature was between 30–40°C in Jan 2025<br/>
+    <code style="color:var(--accent)">
+      /sos/observations?bbox=60,5,150,55&amp;param=temperature&amp;op=between&amp;value=30&amp;value2=40&amp;start=2025-01-01&amp;end=2025-01-31
+    </code>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 11 — SQL ENGINE ═══════════════ -->
+<section>
+  <h2>Dynamic SQL — Safe Parameterized Queries</h2>
+  <p class="subtitle" style="margin-bottom:14px">How filters become database queries</p>
+  <pre><code class="python">conditions = []
+bind_params = []
+
+if country:                                    # spatial
+    conditions.append("LOWER(country) = LOWER(?)")
+    bind_params.append(country)
+
+if start:                                      # temporal
+    conditions.append("timestamp >= ?")
+    bind_params.append(start)
+
+if param in ALLOWED_PARAMS and op == "between":  # parameter
+    conditions.append(f"{param} BETWEEN ? AND ?")
+    bind_params += [value, value2]
+
+sql = f"SELECT * FROM observations WHERE {' AND '.join(conditions)} LIMIT ?"
+rows = conn.execute(sql, bind_params).fetchall()</code></pre>
+  <div class="box" style="font-size:0.8em">
+    <strong>Security:</strong> <code>?</code> placeholders prevent SQL injection.
+    User input never gets pasted into the SQL string directly.
+    <code>param</code> is validated against an allowlist before use as a column name.
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 12 — O&M MAPPING ══════════════ -->
+<section>
+  <h2>O&amp;M — Observations &amp; Measurements</h2>
+  <p class="subtitle" style="margin-bottom:14px">How our database maps to the O&amp;M standard</p>
+  <table>
+    <tr>
+      <th>O&amp;M Concept</th>
+      <th>Definition</th>
+      <th>Our Database Column</th>
+    </tr>
+    <tr>
+      <td><code>featureOfInterest</code></td>
+      <td>The place being observed</td>
+      <td><code>location_name, latitude, longitude</code></td>
+    </tr>
+    <tr>
+      <td><code>observedProperty</code></td>
+      <td>What is being measured</td>
+      <td><code>temperature / humidity / wind_speed / ...</code></td>
+    </tr>
+    <tr>
+      <td><code>procedure</code></td>
+      <td>The sensor that made the observation</td>
+      <td><code>sensor_id</code> → entry in SensorML</td>
+    </tr>
+    <tr>
+      <td><code>phenomenonTime</code></td>
+      <td>When the observation was made</td>
+      <td><code>timestamp</code></td>
+    </tr>
+    <tr>
+      <td><code>result</code></td>
+      <td>The measured value + unit</td>
+      <td>numeric column value + unit from SensorML</td>
+    </tr>
+  </table>
+  <div class="box" style="margin-top:14px; font-size:0.8em">
+    The XML response from <code>/sos/observations</code> wraps each row
+    in <code>&lt;Observation&gt;</code> tags, directly reflecting the O&amp;M model.
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 13 — BACKEND ══════════════════ -->
+<section>
+  <h2>Backend — FastAPI</h2>
+  <p class="subtitle" style="margin-bottom:14px">Python web framework — each URL is a decorated function</p>
+  <div class="grid2">
+    <pre><code class="python">@app.get("/sos/capabilities")
+def get_capabilities():
+    # returns static Capabilities XML
+    return Response(content=xml,
+        media_type="application/xml")
+
+@app.get("/sos/sensor")
+def describe_sensor():
+    # reads sensorml.xml from disk
+    with open("sensorml.xml") as f:
+        return Response(content=f.read(),
+            media_type="application/xml")
+
+@app.get("/sos/sensors")
+def get_sensors():
+    # returns 25 sensor positions as JSON
+    rows = conn.execute("""
+        SELECT sensor_id, location_name,
+        AVG(lat), AVG(lon) FROM observations
+        GROUP BY sensor_id
+    """).fetchall()
+    return [dict(r) for r in rows]</code></pre>
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <h4>SOS Operations → Endpoints</h4>
+        <table>
+          <tr><td><code>GetCapabilities</code></td><td><code>/sos/capabilities</code></td></tr>
+          <tr><td><code>DescribeSensor</code></td><td><code>/sos/sensor</code></td></tr>
+          <tr><td><code>GetObservation</code></td><td><code>/sos/observations</code></td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h4>Frontend Serving</h4>
+        <p>FastAPI also serves the HTML/CSS/JS at <code>/app/</code> via <code>StaticFiles</code> — one server for everything</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 14 — FRONTEND ARCH ════════════ -->
+<section>
+  <h2>Frontend Architecture</h2>
+  <p class="subtitle" style="margin-bottom:14px">Pure HTML/CSS/JS — no framework, loads in any browser</p>
+  <div class="grid3">
+    <div class="card">
+      <h4>index.html</h4>
+      <p>UI skeleton. Two tab divs: <code>#ogcTab</code> and <code>#sosTab</code>. Only one visible at a time.</p>
+    </div>
+    <div class="card">
+      <h4>tabs.js</h4>
+      <p>Switches tabs. Initialises the SOS OpenLayers map on first open (needs the div to be visible first).</p>
+    </div>
+    <div class="card">
+      <h4>sos.js</h4>
+      <p>Entire SOS tab brain: map init, fetch pipeline, XML parser, table builder, Chart.js charts.</p>
+    </div>
+    <div class="card">
+      <h4>map.js</h4>
+      <p>OGC tab map. OpenLayers base + WMS layer add/remove + BBOX draw interaction.</p>
+    </div>
+    <div class="card">
+      <h4>ogcRequests.js</h4>
+      <p>WMS/WFS request builders — constructs GetCapabilities, GetMap, GetFeature URLs.</p>
+    </div>
+    <div class="card">
+      <h4>config.js</h4>
+      <p>Shared utilities: <code>setStatus()</code> header dot, <code>showNotification()</code> toast popups.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 15 — SOS MAP ══════════════════ -->
+<section>
+  <h2>SOS Tab — Interactive Map</h2>
+  <p class="subtitle" style="margin-bottom:16px">OpenLayers map with 25 temperature-coloured sensor markers</p>
+  <div class="grid2">
+    <div>
+      <p style="font-size:0.8em; color:#cbd5e1; margin-bottom:10px">Marker colours encode average temperature from fetched data:</p>
+      <div style="display:flex; flex-direction:column; gap:8px; font-size:0.75em">
+        <div><span class="badge badge-blue">● &lt; 0 °C</span> &nbsp; Freezing</div>
+        <div><span class="badge badge-teal">● 0–15 °C</span> &nbsp; Cool</div>
+        <div><span class="badge badge-green">● 15–25 °C</span> &nbsp; Mild</div>
+        <div><span class="badge badge-orange">● 25–35 °C</span> &nbsp; Warm</div>
+        <div><span class="badge badge-red">● &gt; 35 °C</span> &nbsp; Hot</div>
+      </div>
+      <br/>
+      <div class="card">
+        <h4>Popup on click</h4>
+        <p>Shows latest loaded values: temp, humidity, wind, pressure, precip, timestamp</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <h4>BBOX Draw Tool</h4>
+        <p>Click "✏ Draw" → drag a rectangle on the map → coordinates auto-fill the bbox filter fields</p>
+      </div>
+      <div class="card">
+        <h4>Three Layer Stack</h4>
+        <ul>
+          <li>Layer 0: OSM base tiles</li>
+          <li>Layer 1: sensor marker dots (zIndex 10)</li>
+          <li>Layer 2: bbox draw rectangle (zIndex 20)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 16 — TABLE + CHARTS ═══════════ -->
+<section>
+  <h2>SOS Tab — Data Table &amp; Charts</h2>
+  <div class="grid2">
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <h4>Observation Table</h4>
+        <p>Up to 500 rows: City, Country, Timestamp, Temp, Humidity, Wind, Pressure, Precip</p>
+        <br/>
+        <p>Temperature cells rendered as <span class="badge badge-orange">24.0</span> coloured badges matching the map legend</p>
+      </div>
+      <div class="card">
+        <h4>XML Response Panel</h4>
+        <p>Raw XML from the server is displayed in full — shows the actual O&amp;M-structured response</p>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <h4>Bar Chart (Chart.js)</h4>
+        <p>Average temperature by city (top 10), bars coloured with same temperature scale as map markers</p>
+      </div>
+      <div class="card">
+        <h4>Doughnut Chart (Chart.js)</h4>
+        <p>Observation count by city — shows which sensors have the most data in the current filter result</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 17 — BIDIR SYNC ═══════════════ -->
+<section>
+  <h2>Bidirectional Marker ↔ Table Sync</h2>
+  <p class="subtitle" style="margin-bottom:20px">Click anything → everything else reacts</p>
+  <div class="grid2">
+    <div class="card">
+      <h4>Click a table row →</h4>
+      <ul>
+        <li>Row highlights with blue outline</li>
+        <li>Map <strong>pans and zooms</strong> to that sensor</li>
+        <li>Marker <strong>enlarges</strong> (radius 7 → 11)</li>
+        <li>Popup opens showing latest values</li>
+      </ul>
+      <br/>
+      <pre style="font-size:0.5em"><code class="js">tr.addEventListener("click", () => {
+  _selectSensor(sensorId);
+  sosMap.getView().animate({
+    center: coord, zoom: 4
+  });
+  _showSensorPopup(sensorId, coord);
+});</code></pre>
+    </div>
+    <div class="card">
+      <h4>Click a map marker →</h4>
+      <ul>
+        <li>Marker enlarges + white stroke</li>
+        <li>Popup appears above the dot</li>
+        <li>Matching table row <strong>highlights</strong></li>
+        <li>Table <strong>scrolls</strong> to that row</li>
+      </ul>
+      <br/>
+      <pre style="font-size:0.5em"><code class="js">sosMap.on("click", (evt) => {
+  sosMap.forEachFeatureAtPixel(
+    evt.pixel, (feature) => {
+      _highlightTableRow(
+        feature.get("sensor_id")
+      );
+  });
+});</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 18 — REQUEST LIFECYCLE ════════ -->
+<section>
+  <h2>Full Request Lifecycle</h2>
+  <p class="subtitle" style="margin-bottom:16px">You set filters and click "Get Observations" — here's every step</p>
+  <div style="font-size:0.72em">
+    <div class="flow" style="flex-direction:column; align-items:flex-start; gap:8px; padding:0 20px">
+      <div class="flow-box" style="width:100%; text-align:left">
+        <strong>1. Browser reads form</strong> → builds URL:
+        <code style="color:var(--accent)">/sos/observations?country=Japan&amp;param=temperature&amp;op=gt&amp;value=25</code>
+      </div>
+      <div style="color:var(--accent); padding-left:20px">↓ HTTP GET</div>
+      <div class="flow-box" style="width:100%; text-align:left">
+        <strong>2. FastAPI</strong> receives params → builds SQL →
+        <code>SELECT * FROM observations WHERE LOWER(country)=LOWER('Japan') AND temperature &gt; 25 LIMIT 500</code>
+      </div>
+      <div style="color:var(--accent); padding-left:20px">↓ SQLite executes</div>
+      <div class="flow-box" style="width:100%; text-align:left">
+        <strong>3. rows_to_xml()</strong> → wraps each row in <code>&lt;Observation&gt;</code> tags → returns
+        <code>application/xml</code>
+      </div>
+      <div style="color:var(--accent); padding-left:20px">↓ back to browser</div>
+      <div class="flow-box" style="width:100%; text-align:left">
+        <strong>4. DOMParser</strong> parses XML → JS array of objects →
+        simultaneously feeds <strong>map markers</strong>, <strong>table rows</strong>, and <strong>Chart.js</strong>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 19 — STANDARDS COMPLIANCE ═════ -->
+<section>
+  <h2>Standards Compliance Summary</h2>
+  <table>
+    <tr>
+      <th>OGC Standard</th>
+      <th>Concept</th>
+      <th>Our Implementation</th>
+    </tr>
+    <tr>
+      <td><span class="tag tag-sos">SOS 2.0</span></td>
+      <td>GetCapabilities</td>
+      <td><code>GET /sos/capabilities</code> → Capabilities XML with OperationsMetadata</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-sos">SOS 2.0</span></td>
+      <td>DescribeSensor</td>
+      <td><code>GET /sos/sensor</code> → SensorML 2.0 document</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-sos">SOS 2.0</span></td>
+      <td>GetObservation</td>
+      <td><code>GET /sos/observations</code> → spatial + temporal + parameter filters</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-om">O&amp;M</span></td>
+      <td>Observation model</td>
+      <td>Each DB row encodes featureOfInterest, observedProperty, procedure, phenomenonTime, result</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-wms">SensorML 2.0</span></td>
+      <td>System description</td>
+      <td>10 sensors described with GML location, output list, units</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-wms">WMS 1.1</span></td>
+      <td>GetCapabilities, GetMap</td>
+      <td>OGC tab — full WMS client against GeoServer</td>
+    </tr>
+    <tr>
+      <td><span class="tag tag-wfs">WFS 2.0</span></td>
+      <td>GetCapabilities, GetFeature</td>
+      <td>OGC tab — WFS client with max features, BBOX</td>
+    </tr>
+  </table>
+</section>
+
+<!-- ═══════════════════════════ SLIDE 20 — SUMMARY ══════════════════ -->
+<section>
+  <h2>Summary &amp; What's Next</h2>
+  <div class="grid2">
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <h4>What Was Built</h4>
+        <ul>
+          <li>Unified OGC portal (WMS + WFS + SOS)</li>
+          <li>25-sensor global weather observatory</li>
+          <li>SOS 2.0 operations over real data</li>
+          <li>SensorML + O&amp;M compliant responses</li>
+          <li>Interactive map, table, charts</li>
+          <li>Single-command deployment</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>Stack</h4>
+        <ul>
+          <li>Python 3 · FastAPI · SQLite</li>
+          <li>OpenLayers · Chart.js</li>
+          <li>OGC SOS 2.0 · SensorML 2.0 · O&amp;M</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:12px">
+        <h4>Possible Next Steps</h4>
+        <ul>
+          <li>Migrate to <strong>istSOS</strong> (OGC-certified server)</li>
+          <li>Containerise with <strong>Docker Compose</strong></li>
+          <li>Add real-time ingestion via SOS <code>InsertObservation</code></li>
+          <li>Proper SOS 2.0 XML encoding (namespaces)</li>
+        </ul>
+      </div>
+      <div class="box" style="text-align:center">
+        <div style="font-size:1.4em; margin-bottom:6px">◈</div>
+        <code style="color:var(--accent)">http://127.0.0.1:8000</code><br/>
+        <span style="font-size:0.7em; color:#94a3b8">
+          cd backend &amp;&amp; uvicorn main:app --host 127.0.0.1 --port 8000
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- /slides -->
+</div><!-- /reveal -->
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5/plugin/highlight/highlight.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    transition: "slide",
+    transitionSpeed: "fast",
+    controls: true,
+    progress: true,
+    plugins: [ RevealHighlight ],
+  });
+</script>
+</body>
+</html>
