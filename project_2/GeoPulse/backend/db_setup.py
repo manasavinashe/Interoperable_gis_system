@@ -1,15 +1,15 @@
 import sqlite3
 import pandas as pd
+import os
 
-# Load cleaned data
-df = pd.read_csv("../data/cleaned_weather.csv")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CSV_PATH = os.path.join(BASE_DIR, "..", "data", "cleaned_weather.csv")
+DB_PATH  = os.path.join(BASE_DIR, "weather.db")
 
-# Create DB
-conn = sqlite3.connect("weather.db")
+df = pd.read_csv(CSV_PATH)
 
-# Store data
+conn = sqlite3.connect(DB_PATH)
 df.to_sql("observations", conn, if_exists="replace", index=False)
-
 conn.close()
 
-print("✅ Database created")
+print(f"✅ Database created at {DB_PATH} ({len(df)} rows)")
