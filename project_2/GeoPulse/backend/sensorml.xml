@@ -3,206 +3,557 @@
           xmlns:swe="http://www.opengis.net/swe/2.0"
           xmlns:gml="http://www.opengis.net/gml/3.2">
 
-  <!-- Asia -->
-  <member>
-    <System>
-      <identifier>Mumbai_India</identifier>
-      <description>Weather sensor located in Mumbai, India</description>
-      <location>
-        <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>72.8777,19.0760</gml:coordinates>
-        </gml:Point>
-      </location>
-      <outputs>
-        <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
-        </OutputList>
-      </outputs>
-    </System>
-  </member>
+  <!-- ═══════════════════════════════════════════════════════════
+       GeoPulse — SensorML 2.0 description for 25 weather sensors
+       GNR629 Project 2 · CSRE, IIT Bombay
+       Coordinates: EPSG:4326 (longitude, latitude)
+       Observed properties: temperature · humidity · wind_speed
+                            pressure · precipitation
+  ════════════════════════════════════════════════════════════════ -->
 
+  <!-- ── Americas ──────────────────────────────────────────────── -->
   <member>
     <System>
-      <identifier>Delhi_India</identifier>
-      <description>Weather sensor located in Delhi, India</description>
-      <location>
-        <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>77.1025,28.7041</gml:coordinates>
-        </gml:Point>
-      </location>
-      <outputs>
-        <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
-        </OutputList>
-      </outputs>
-    </System>
-  </member>
-
-  <member>
-    <System>
-      <identifier>Beijing_China</identifier>
-      <description>Weather sensor located in Beijing, China</description>
-      <location>
-        <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>116.3883,39.9289</gml:coordinates>
-        </gml:Point>
-      </location>
-      <outputs>
-        <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
-        </OutputList>
-      </outputs>
-    </System>
-  </member>
-
-  <!-- Europe -->
-  <member>
-    <System>
-      <identifier>Vienna_Austria</identifier>
-      <description>Weather sensor located in Vienna, Austria</description>
-      <location>
-        <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>16.3667,48.2000</gml:coordinates>
-        </gml:Point>
-      </location>
-      <outputs>
-        <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
-        </OutputList>
-      </outputs>
-    </System>
-  </member>
-
-  <member>
-    <System>
-      <identifier>Bern_Switzerland</identifier>
-      <description>Weather sensor located in Bern, Switzerland</description>
-      <location>
-        <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>7.4667,46.9167</gml:coordinates>
-        </gml:Point>
-      </location>
-      <outputs>
-        <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
-        </OutputList>
-      </outputs>
-    </System>
-  </member>
-
-  <!-- Africa -->
-  <member>
-    <System>
-      <identifier>Luanda_Angola</identifier>
-      <description>Weather sensor located in Luanda, Angola</description>
-      <location>
-        <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>13.2344,-8.8383</gml:coordinates>
-        </gml:Point>
-      </location>
-      <outputs>
-        <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
-        </OutputList>
-      </outputs>
-    </System>
-  </member>
-
-  <member>
-    <System>
-      <identifier>Algiers_Algeria</identifier>
-      <description>Weather sensor located in Algiers, Algeria</description>
-      <location>
-        <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>3.0500,36.7600</gml:coordinates>
-        </gml:Point>
-      </location>
-      <outputs>
-        <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
-        </OutputList>
-      </outputs>
-    </System>
-  </member>
-
-  <!-- Americas -->
-  <member>
-    <System>
-      <identifier>Ottawa_Canada</identifier>
-      <description>Weather sensor located in Ottawa, Canada</description>
-      <location>
-        <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>-75.7000,45.4167</gml:coordinates>
-        </gml:Point>
-      </location>
-      <outputs>
-        <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
-        </OutputList>
-      </outputs>
-    </System>
-  </member>
-
-  <member>
-    <System>
-      <identifier>BuenosAires_Argentina</identifier>
+      <identifier>Buenos Aires_Argentina</identifier>
       <description>Weather sensor located in Buenos Aires, Argentina</description>
       <location>
         <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>-58.6725,-34.5875</gml:coordinates>
+          <gml:coordinates>-58.672,-34.588</gml:coordinates>
         </gml:Point>
       </location>
       <outputs>
         <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
         </OutputList>
       </outputs>
     </System>
   </member>
 
-  <!-- Oceania -->
+  <!-- ── Oceania ────────────────────────────────────────────────── -->
   <member>
     <System>
       <identifier>Canberra_Australia</identifier>
       <description>Weather sensor located in Canberra, Australia</description>
       <location>
         <gml:Point srsName="EPSG:4326">
-          <gml:coordinates>149.2167,-35.2833</gml:coordinates>
+          <gml:coordinates>149.2173,-35.2827</gml:coordinates>
         </gml:Point>
       </location>
       <outputs>
         <OutputList>
-          <output name="temperature" unit="Celsius"/>
-          <output name="humidity" unit="%"/>
-          <output name="wind_speed" unit="kph"/>
-          <output name="pressure" unit="mb"/>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Americas ──────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Ottawa_Canada</identifier>
+      <description>Weather sensor located in Ottawa, Canada</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>-75.7,45.4173</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Asia ──────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Beijing_China</identifier>
+      <description>Weather sensor located in Beijing, China</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>116.3886,39.9291</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Africa ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Cairo_Egypt</identifier>
+      <description>Weather sensor located in Cairo, Egypt</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>31.25,30.05</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Europe ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Berlin_Germany</identifier>
+      <description>Weather sensor located in Berlin, Germany</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>13.4,52.5173</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Africa ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Accra_Ghana</identifier>
+      <description>Weather sensor located in Accra, Ghana</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>-0.2173,5.55</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Asia ──────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>New Delhi_India</identifier>
+      <description>Weather sensor located in New Delhi, India</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>77.2,28.6</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <member>
+    <System>
+      <identifier>Tehran_Iran</identifier>
+      <description>Weather sensor located in Tehran, Iran</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>51.3303,35.7269</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Europe ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Rome_Italy</identifier>
+      <description>Weather sensor located in Rome, Italy</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>12.4827,41.9</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Asia ──────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Tokyo_Japan</identifier>
+      <description>Weather sensor located in Tokyo, Japan</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>139.6914,35.6896</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Africa ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Nairobi_Kenya</identifier>
+      <description>Weather sensor located in Nairobi, Kenya</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>36.8173,-1.2827</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Americas ──────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Mexico City_Mexico</identifier>
+      <description>Weather sensor located in Mexico City, Mexico</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>-99.1281,19.4288</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Oceania ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Wellington_New Zealand</identifier>
+      <description>Weather sensor located in Wellington, New Zealand</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>174.7827,-41.3</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Middle East ───────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Muscat_Oman</identifier>
+      <description>Weather sensor located in Muscat, Oman</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>58.5927,23.6127</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Americas ──────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Lima_Peru</identifier>
+      <description>Weather sensor located in Lima, Peru</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>-77.05,-12.05</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Europe ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Warsaw_Poland</identifier>
+      <description>Weather sensor located in Warsaw, Poland</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>21.0,52.25</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <member>
+    <System>
+      <identifier>Moscow_Russia</identifier>
+      <description>Weather sensor located in Moscow, Russia</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>37.6165,55.7518</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Middle East ───────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Riyadh_Saudi Arabia</identifier>
+      <description>Weather sensor located in Riyadh, Saudi Arabia</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>46.7723,24.6406</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Africa ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Dakar_Senegal</identifier>
+      <description>Weather sensor located in Dakar, Senegal</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>-17.4385,14.6706</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Asia ──────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Singapore_Singapore</identifier>
+      <description>Weather sensor located in Singapore</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>103.8566,1.2925</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Africa ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Pretoria_South Africa</identifier>
+      <description>Weather sensor located in Pretoria, South Africa</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>28.1884,-25.7475</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Asia ──────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Bangkok_Thailand</identifier>
+      <description>Weather sensor located in Bangkok, Thailand</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>100.5173,13.75</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Europe ────────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>London_United Kingdom</identifier>
+      <description>Weather sensor located in London, United Kingdom</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>-0.1069,51.5177</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
+        </OutputList>
+      </outputs>
+    </System>
+  </member>
+
+  <!-- ── Americas ──────────────────────────────────────────────── -->
+  <member>
+    <System>
+      <identifier>Montevideo_Uruguay</identifier>
+      <description>Weather sensor located in Montevideo, Uruguay</description>
+      <location>
+        <gml:Point srsName="EPSG:4326">
+          <gml:coordinates>-56.1706,-34.8585</gml:coordinates>
+        </gml:Point>
+      </location>
+      <outputs>
+        <OutputList>
+          <output name="temperature"   unit="Celsius"/>
+          <output name="humidity"      unit="%"/>
+          <output name="wind_speed"    unit="kph"/>
+          <output name="pressure"      unit="mb"/>
+          <output name="precipitation" unit="mm"/>
         </OutputList>
       </outputs>
     </System>
