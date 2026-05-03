@@ -38,13 +38,13 @@ def rows_to_xml(rows):
     return ET.tostring(root, encoding="unicode", xml_declaration=False)
 
 
-# ── Home — redirect to frontend ──────────────────────────────────────────────
+# redirect root to the frontend
 @app.get("/")
 def home():
     return RedirectResponse(url="/app/index.html")
 
 
-# ── GetCapabilities ──────────────────────────────────────────────────────────
+# SOS GetCapabilities - returns service description XML
 @app.get("/sos/capabilities")
 def get_capabilities():
     xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -104,7 +104,7 @@ def get_capabilities():
     return Response(content=xml, media_type="application/xml")
 
 
-# ── DescribeSensor ───────────────────────────────────────────────────────────
+# DescribeSensor - serves sensorml.xml
 @app.get("/sos/sensor")
 def describe_sensor():
     path = os.path.join(BASE_DIR, "sensorml.xml")
@@ -113,7 +113,7 @@ def describe_sensor():
     return Response(content=data, media_type="application/xml")
 
 
-# ── GetSensors ───────────────────────────────────────────────────────────────
+# returns all 25 sensor positions (used by frontend to place markers on load)
 @app.get("/sos/sensors")
 def get_sensors():
     conn = get_conn()
@@ -130,7 +130,7 @@ def get_sensors():
     return [dict(r) for r in rows]
 
 
-# ── GetObservation — all filters combinable ──────────────────────────────────
+# main SOS GetObservation endpoint - supports spatial, temporal and parameter filters
 @app.get("/sos/observations")
 def get_observations(
     # Spatial subsetting
@@ -173,7 +173,7 @@ def get_observations(
     conditions = []
     bind_params = []
 
-    # ── Spatial: bounding box ────────────────────────────────────────────────
+    # spatial filter - bounding box
     if bbox:
         parts = [p.strip() for p in bbox.split(",")]
         if len(parts) == 4:
@@ -185,17 +185,17 @@ def get_observations(
             except ValueError:
                 pass
 
-    # ── Spatial: country containment ─────────────────────────────────────────
+    # spatial filter - country name
     if country:
         conditions.append("LOWER(country) = LOWER(?)")
         bind_params.append(country.strip())
 
-    # ── Temporal: after a time instant ───────────────────────────────────────
+    # temporal filter - after a specific time
     if after and not (start or end):
         conditions.append("timestamp > ?")
         bind_params.append(after.strip())
 
-    # ── Temporal: during a time window ───────────────────────────────────────
+    # temporal filter - time window (start/end)
     if start:
         conditions.append("timestamp >= ?")
         bind_params.append(start.strip())
@@ -203,7 +203,7 @@ def get_observations(
         conditions.append("timestamp <= ?")
         bind_params.append(end.strip())
 
-    # ── Parameter filtering ───────────────────────────────────────────────────
+    # parameter value filter (temperature, humidity, etc.)
     ALLOWED_PARAMS = {"temperature", "humidity", "wind_speed", "pressure", "precipitation"}
     ALLOWED_OPS = {"eq", "neq", "lt", "lte", "gt", "gte", "between"}
 
@@ -252,6 +252,5 @@ def get_observations(
     return Response(content=rows_to_xml(rows), media_type="application/xml")
 
 
-# ── Serve frontend static files at /app ──────────────────────────────────────
-# Must be mounted after all API routes so /sos/* paths are not shadowed.
+# serve the frontend - this has to be last otherwise it shadows the /sos/* routes
 app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

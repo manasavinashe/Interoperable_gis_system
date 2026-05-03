@@ -1079,9 +1079,7 @@ body {
   overflow: hidden;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SOS Tab
-   ═══════════════════════════════════════════════════════════ */
+/* SOS Tab */
 
 #sosTab {
   height: 100%;
@@ -1097,7 +1095,7 @@ body {
   overflow: hidden;
 }
 
-/* ── Left filter panel ─────────────────────────────────────── */
+/* Left filter panel */
 .sos-panel {
   width: 300px;
   flex-shrink: 0;
@@ -1124,7 +1122,7 @@ body {
   padding: 14px;
 }
 
-/* ── Right side ────────────────────────────────────────────── */
+/* Right side */
 .sos-right {
   flex: 1;
   display: flex;
@@ -1185,7 +1183,7 @@ body {
   position: relative;
 }
 
-/* ── Temperature legend ────────────────────────────────────── */
+/* Temperature legend */
 .sos-legend {
   position: absolute;
   bottom: 12px;
@@ -1224,7 +1222,7 @@ body {
   flex-shrink: 0;
 }
 
-/* ── Request URL display ───────────────────────────────────── */
+/* Request URL display */
 .sos-url-display {
   font-size: 10px;
   font-family: var(--font-mono);
@@ -1237,7 +1235,7 @@ body {
   line-height: 1.5;
 }
 
-/* ── XML output in left panel ──────────────────────────────── */
+/* XML output in left panel */
 .sos-xml-out {
   background: var(--bg-panel-alt);
   border: 1px solid var(--border);
@@ -1253,7 +1251,7 @@ body {
   line-height: 1.4;
 }
 
-/* ── Temperature badge in table ────────────────────────────── */
+/* Temperature badge in table */
 .temp-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -1266,14 +1264,14 @@ body {
   text-shadow: 0 1px 2px rgba(0,0,0,0.25);
 }
 
-/* ── Mono cell ─────────────────────────────────────────────── */
+/* Mono cell */
 .mono-cell {
   font-family: var(--font-mono);
   font-size: 10px;
   white-space: nowrap;
 }
 
-/* ── Selected table row ────────────────────────────────────── */
+/* Selected table row */
 #sosDataTable tbody tr {
   cursor: pointer;
 }
@@ -1284,7 +1282,7 @@ body {
   outline-offset: -1px;
 }
 
-/* ── Sensor popup grid ─────────────────────────────────────── */
+/* Sensor popup grid */
 .sos-popup-name {
   font-weight: 700;
   font-size: 13px;

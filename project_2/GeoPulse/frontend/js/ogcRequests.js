@@ -1,6 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// OGCREQUESTS.JS  –  WMS/WFS request logic + layer population
-// ═══════════════════════════════════════════════════════════════════════════════
+// ogcRequests.js - WMS/WFS request logic and layer population
 
 // getting WMS capabilities
 function wmsGetCapabilities() {

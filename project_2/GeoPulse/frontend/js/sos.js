@@ -3,7 +3,7 @@
 // Empty string = relative URLs, so the app works whether opened via file:// or served by FastAPI
 const SOS_BASE = window.location.protocol === "file:" ? "http://127.0.0.1:8000" : "";
 
-// ── State ────────────────────────────────────────────────────────────────────
+// State
 let sosMap = null;
 let sosMarkerSource = null;
 let sosMarkerLayer = null;
@@ -17,7 +17,7 @@ let _barChart = null;
 let _pieChart = null;
 let _selectedSensor = null;
 
-// ── Init SOS map (called once when SOS tab first opens) ──────────────────────
+// Init SOS map (called once when SOS tab first opens)
 function initSOSMap() {
   if (_sosMapInited) return;
   _sosMapInited = true;
@@ -85,7 +85,7 @@ function initSOSMap() {
   _loadSensorMeta();
 }
 
-// ── Load all 25 sensor positions from backend ─────────────────────────────────
+// Load all 25 sensor positions from backend
 function _loadSensorMeta() {
   fetch(SOS_BASE + "/sos/sensors")
     .then((r) => r.json())
@@ -110,7 +110,7 @@ function _renderAllSensorMarkers() {
   });
 }
 
-// ── Marker style (colour = temperature) ──────────────────────────────────────
+// Marker style (colour = temperature)
 function _tempColor(temp) {
   if (temp === null || temp === undefined || isNaN(temp)) return "#9ca3af";
   if (temp < 0)  return "#60a5fa";  // blue — freezing
@@ -135,7 +135,7 @@ function _markerStyle(avgTemp, selected) {
   });
 }
 
-// ── Select / deselect a sensor marker ────────────────────────────────────────
+// Select / deselect a sensor marker
 function _selectSensor(sensorId) {
   // deselect previous
   if (_selectedSensor && _selectedSensor !== sensorId) {
@@ -156,7 +156,7 @@ function _styleMarkerForSensor(sensorId, selected) {
   f.setStyle(_markerStyle(avg, selected));
 }
 
-// ── Sensor popup ──────────────────────────────────────────────────────────────
+// Sensor popup
 function _showSensorPopup(sensorId, coordinate) {
   const meta = _sensorMeta[sensorId] || {};
   const obs = _currentObs.filter((o) => o.sensor_id === sensorId);
@@ -196,7 +196,7 @@ function closeSosPopup() {
     .forEach((r) => r.classList.remove("sos-row-selected"));
 }
 
-// ── GetCapabilities / DescribeSensor ──────────────────────────────────────────
+// GetCapabilities / DescribeSensor
 function sosGetCapabilities() {
   const url = SOS_BASE + "/sos/capabilities";
   _setSOSURL(url);
@@ -233,7 +233,7 @@ function sosDescribeSensor() {
     });
 }
 
-// ── Fetch observations with all filters ───────────────────────────────────────
+// Fetch observations with all filters
 function fetchObservations() {
   const params = new URLSearchParams();
 
@@ -316,7 +316,7 @@ function updateSOSValFields() {
     op === "between" ? "" : "none";
 }
 
-// ── Parse XML response into JS objects ────────────────────────────────────────
+// Parse XML response into JS objects
 function _parseObsXML(xmlText) {
   const doc = new DOMParser().parseFromString(xmlText, "text/xml");
   const obsEls = doc.getElementsByTagName("Observation");
@@ -346,7 +346,7 @@ function _parseObsXML(xmlText) {
   return results;
 }
 
-// ── Update marker colours with fetched observation averages ───────────────────
+// Update marker colours with fetched observation averages
 function _renderObsMarkers(obs) {
   // avg temperature per sensor from fetched data
   const sensorTemps = {};
@@ -384,7 +384,7 @@ function _renderObsMarkers(obs) {
   });
 }
 
-// ── Render observation table ───────────────────────────────────────────────────
+// Render observation table
 function _renderTable(obs) {
   const table = document.getElementById("sosDataTable");
   if (!table) return;
@@ -468,7 +468,7 @@ function _highlightTableRow(sensorId) {
   }
 }
 
-// ── Charts (Chart.js) ─────────────────────────────────────────────────────────
+// Charts (Chart.js)
 function _renderCharts(obs) {
   if (!obs.length) return;
 
@@ -566,7 +566,7 @@ function _renderCharts(obs) {
   }
 }
 
-// ── BBOX draw on SOS map ──────────────────────────────────────────────────────
+// BBOX draw on SOS map
 function activateSosBBoxDraw() {
   if (!sosMap) return;
   if (sosDrawInteraction) sosMap.removeInteraction(sosDrawInteraction);
@@ -603,7 +603,7 @@ function _getSosBBOX() {
   return null;
 }
 
-// ── Utilities ─────────────────────────────────────────────────────────────────
+// Utilities
 function _setSOSURL(url) {
   const el = document.getElementById("sosRequestURL");
   if (el) el.textContent = url;
